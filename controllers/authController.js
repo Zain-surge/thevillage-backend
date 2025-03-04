@@ -76,9 +76,7 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
 
     req.session.user = { id: user.user_id, email: user.email };
-    await req.session.save(); // Ensures session is stored in Redis
-
-    console.log("Session After Login:", req.session);
+    console.log("Session After Login:", req.session); // Debug log
     res.status(200).json({
       success: true,
       message: "Login successful",
@@ -104,11 +102,11 @@ export const logout = async (req, res) => {
 };
 
 export const checkSession = (req, res) => {
-  console.log("Checking session...");
+  console.log("HELLO");
   if (req.session.user) {
     return res.json({ user: req.session.user });
   } else {
-    console.log("Not logged in");
+    console.log("NOT LOGGED IN");
     return res.status(401).json({ message: "Not logged in" });
   }
 };
