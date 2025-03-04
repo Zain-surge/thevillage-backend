@@ -18,24 +18,43 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
+// ✅ Fix CORS configuration
 app.use(
-  cookieSession({
-    name: "session",
-    keys: ["supersecretkey"], // Secret key for signing the cookie
-    maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    secure: true, // Secure cookies only in production
-    httpOnly: true, // Prevents JavaScript access
-    sameSite: "none", // Allows cross-origin authentication
+  cors({
+    origin: "https://the-village-pizzeria.web.app", // Allow frontend domain
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true, // Allow cookies and sessions
   })
 );
 
+// ✅ Ensure preflight requests (OPTIONS) are handled correctly
+app.options("*", cors());
+
 app.use(
-  cors({
-    origin: "https://the-village-pizzeria.web.app",
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true, // Allows cookies to be sent across origins
+  cookieSession({
+    name: "session",
+    keys: [process.env.SESSION_SECRET || "supersecretkey"], // Encryption key
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    secure: process.env.NODE_ENV === "production", // Secure cookies only in production
+    httpOnly: true, // Prevent JavaScript access
+    sameSite: "none", // Required for cross-origin cookies
   })
 );
+
+// ✅ Debugging: Log headers to check if CORS is applied
+app.use((req, res, next) => {
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "https://the-village-pizzeria.web.app"
+  );
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  next();
+});
 
 // Routes
 app.use("/auth", authRoutes);
