@@ -47,7 +47,7 @@ app.use(
     rolling: true,
     cookie: {
       maxAge: 24 * 60 * 60 * 1000,
-      secure: true, // Ensure this is true for HTTPS
+      // secure: true, // Ensure this is true for HTTPS
       sameSite: "none", // Crucial for cross-origin
       domain: ".the-village-pizzeria.web.app", // Use the top-level domain
     },
