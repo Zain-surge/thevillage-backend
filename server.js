@@ -6,6 +6,13 @@ import session from "express-session";
 import pgSession from "connect-pg-simple";
 import pool from "./config/db.js";
 
+import authRoutes from "./routes/authRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+import items from "./routes/items.js";
+import cart from "./routes/cartRoutes.js";
+import users from "./routes/userRoutes.js";
+import orders from "./routes/orderRoutes.js";
+
 dotenv.config();
 const app = express();
 
