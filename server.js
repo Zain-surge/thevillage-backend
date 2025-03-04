@@ -31,13 +31,16 @@ app.use(
 app.options("*", cors());
 
 app.use(
-  cookieSession({
-    name: "session",
-    keys: ["supersecretkey"], // Encryption key
-    maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    secure: true, // Secure cookies only in production
-    httpOnly: true, // Prevent JavaScript access
-    sameSite: "none", // Required for cross-origin cookies
+  session({
+    secret: "supersecretkey", // Use environment variable
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: true,
+      httpOnly: true,
+      sameSite: "none",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
   })
 );
 
