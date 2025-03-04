@@ -1,5 +1,4 @@
 import express from "express";
-import cookieSession from "cookie-session";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -7,54 +6,67 @@ import session from "express-session";
 import pgSession from "connect-pg-simple";
 import pool from "./config/db.js";
 
-// Import routes
-import authRoutes from "./routes/authRoutes.js";
-import paymentRoutes from "./routes/paymentRoutes.js";
-import items from "./routes/items.js";
-import cart from "./routes/cartRoutes.js";
-import users from "./routes/userRoutes.js";
-import orders from "./routes/orderRoutes.js";
-
 dotenv.config();
 const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
 
-// ✅ Fix CORS configuration
-app.use(
-  cors({
-    origin: "https://the-village-pizzeria.web.app",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    credentials: true,
-  })
-);
+// Detailed CORS configuration
+const corsOptions = {
+  origin: ["https://the-village-pizzeria.web.app", "http://localhost:3000"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+  credentials: true,
+};
 
-// ✅ Ensure preflight requests (OPTIONS) are handled correctly
-app.options("*", cors());
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 // Configure PostgreSQL session store
 const pgSessionStore = pgSession(session);
 const sessionStore = new pgSessionStore({
-  pool: pool, // Reuse the existing database pool
-  tableName: "user_sessions", // Customize the table name if needed
+  pool: pool,
+  tableName: "user_sessions",
+  createTableIfMissing: true,
 });
 
-// Session middleware with PostgreSQL store
+// Session middleware with extensive logging
 app.use(
   session({
     store: sessionStore,
-    secret: "supersecretkey", // Use environment variable
+    secret: "supersecretkey",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true, // Secure in production
+      secure: true,
       httpOnly: true,
       sameSite: "none",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      path: "/",
     },
   })
 );
+
+// Comprehensive debugging middleware
+app.use((req, res, next) => {
+  console.log("Session Debug Middleware:", {
+    sessionID: req.sessionID,
+    sessionExists: !!req.session,
+    sessionUser: req.session?.user,
+    fullSessionDetails: JSON.stringify(req.session, null, 2),
+  });
+
+  // Additional logging to track session creation and retrieval
+  if (req.session) {
+    console.log("Session Store Details:", {
+      storeType: sessionStore.constructor.name,
+      sessionStoreConfig: JSON.stringify(sessionStore.options, null, 2),
+    });
+  }
+
+  next();
+});
 
 // ✅ Debugging: Log headers to check if CORS is applied
 app.use((req, res, next) => {
