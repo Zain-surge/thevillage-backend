@@ -1,8 +1,11 @@
 import express from "express";
+import session from "express-session";
 import cookieSession from "cookie-session";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import pgSession from "connect-pg-simple";
+import pool from "./config/db.js"; // Adjust the path to your pool file
 
 // Import routes
 import authRoutes from "./routes/authRoutes.js";
@@ -14,20 +17,39 @@ import orders from "./routes/orderRoutes.js";
 
 dotenv.config();
 const app = express();
+const PgSession = pgSession(session);
+
+app.use(
+  session({
+    store: new PgSession({
+      pool: pool, // Use your existing PostgreSQL pool
+      tableName: "user_sessions", // Default table name
+    }),
+    secret: process.env.SESSION_SECRET, // Ensure you set this in your environment variables
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      secure: process.env.NODE_ENV === "production", // Set to true in production
+      httpOnly: true,
+      sameSite: "lax", // Adjust based on your requirements
+    },
+  })
+);
 
 app.use(express.json());
 app.use(cookieParser());
 
-app.use(
-  cookieSession({
-    name: "session",
-    keys: ["supersecretkey"], // Secret key for signing the cookie
-    maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    secure: true, // Secure cookies only in production
-    httpOnly: true, // Prevents JavaScript access
-    sameSite: "none", // Allows cross-origin authentication
-  })
-);
+// app.use(
+//   cookieSession({
+//     name: "session",
+//     keys: ["supersecretkey"], // Secret key for signing the cookie
+//     maxAge: 1000 * 60 * 60 * 24, // 24 hours
+//     secure: true, // Secure cookies only in production
+//     httpOnly: true, // Prevents JavaScript access
+//     sameSite: "none", // Allows cross-origin authentication
+//   })
+// );
 
 app.use(
   cors({
