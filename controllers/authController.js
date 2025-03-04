@@ -75,7 +75,7 @@ export const login = async (req, res) => {
     if (!isMatch)
       return res.status(400).json({ message: "Invalid credentials" });
 
-    // Explicitly set the session and save
+    // Regenerate session
     return new Promise((resolve, reject) => {
       req.session.regenerate((err) => {
         if (err) {
@@ -83,6 +83,7 @@ export const login = async (req, res) => {
           return res.status(500).json({ message: "Session error" });
         }
 
+        // Set user in session
         req.session.user = { id: user.user_id, email: user.email };
 
         req.session.save((saveErr) => {
@@ -91,11 +92,12 @@ export const login = async (req, res) => {
             return res.status(500).json({ message: "Session save error" });
           }
 
-          // Explicitly set the cookie
+          // Explicitly set cookie
           res.cookie("connect.sid", req.sessionID, {
+            domain: ".the-village-pizzeria.web.app",
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+            secure: true,
+            sameSite: "none",
             maxAge: 24 * 60 * 60 * 1000,
           });
 

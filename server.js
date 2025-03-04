@@ -34,16 +34,17 @@ app.use(
       tableName: "user_sessions",
       createTableIfMissing: true,
     }),
+    name: "connect.sid", // Explicitly set cookie name
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: true, // Changed to true
+    saveUninitialized: false,
     rolling: true,
-    proxy: true, // Add this for cloud/proxy environments
     cookie: {
       maxAge: 24 * 60 * 60 * 1000,
-      secure: process.env.NODE_ENV === "production",
+      secure: true, // Ensure this is true for HTTPS
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: "none", // Crucial for cross-origin
+      domain: ".the-village-pizzeria.web.app", // Use the top-level domain
     },
   })
 );
