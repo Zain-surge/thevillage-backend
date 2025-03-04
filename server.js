@@ -25,7 +25,7 @@ app.use((req, res, next) => {
 });
 app.use(cookieParser());
 
-app.set("trust proxy", 1); // Important for secure cookies in cloud/proxy environments
+app.set("trust proxy", 1); // Critical for Cloudflare and Render
 
 app.use(
   session({
@@ -33,22 +33,31 @@ app.use(
       pool: pool,
       tableName: "user_sessions",
       createTableIfMissing: true,
+      pruneSessionInterval: 1000 * 60 * 60, // Prune every hour
     }),
-    name: "connect.sid", // Explicitly set cookie name
+    name: "connect.sid",
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     rolling: true,
+    proxy: true,
     cookie: {
-      maxAge: 24 * 60 * 60 * 1000,
-      secure: true, // Ensure this is true for HTTPS
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      secure: true, // Always true with HTTPS
       httpOnly: true,
-      sameSite: "none", // Crucial for cross-origin
-      domain: ".the-village-pizzeria.web.app", // Use the top-level domain
+      sameSite: "none", // Required for cross-site
+      domain: process.env.COOKIE_DOMAIN || ".the-village-pizzeria.web.app",
     },
   })
 );
 
+// Middleware to handle Cloudflare session persistence
+app.use((req, res, next) => {
+  if (req.headers["cf-ray"]) {
+    req.sessionOptions.cookie.domain = req.hostname;
+  }
+  next();
+});
 // Add a middleware to log and debug session
 app.use((req, res, next) => {
   console.log("Detailed Session Debug:");
