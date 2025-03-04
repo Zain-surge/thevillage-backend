@@ -64,79 +64,26 @@ export const verifyOtp = async (req, res) => {
   }
 };
 
-// export const login = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-//     const user = await getUserByEmail(email);
-
-//     if (!user) return res.status(404).json({ message: "User not found" });
-
-//     const isMatch = await bcrypt.compare(password, user.password);
-//     if (!isMatch)
-//       return res.status(400).json({ message: "Invalid credentials" });
-
-//     req.session.user = { id: user.user_id, email: user.email };
-//     console.log("Session After Login:", req.session); // Debug log
-//     res.status(200).json({
-//       success: true,
-//       message: "Login successful",
-//       user: req.session.user,
-//       userDetails: user,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await getUserByEmail(email);
 
-    if (!user) {
-      console.error("Login Failed: User not found", { email });
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      console.error("Login Failed: Invalid credentials", { email });
+    if (!isMatch)
       return res.status(400).json({ message: "Invalid credentials" });
-    }
 
-    // Explicitly set and save user data
-    req.session.regenerate((err) => {
-      if (err) {
-        console.error("Session Regeneration Error:", err);
-        return res.status(500).json({ message: "Session creation failed" });
-      }
-
-      req.session.user = {
-        id: user.user_id,
-        email: user.email,
-      };
-
-      req.session.save((saveErr) => {
-        if (saveErr) {
-          console.error("Session Save Error:", saveErr);
-          return res.status(500).json({ message: "Session save failed" });
-        }
-
-        console.log("Login Success - Session Details:", {
-          sessionID: req.sessionID,
-          user: req.session.user,
-          fullSession: JSON.stringify(req.session, null, 2),
-        });
-
-        res.status(200).json({
-          success: true,
-          message: "Login successful",
-          user: req.session.user,
-          sessionId: req.sessionID,
-        });
-      });
+    req.session.user = { id: user.user_id, email: user.email };
+    console.log("Session After Login:", req.session); // Debug log
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      user: req.session.user,
+      userDetails: user,
     });
   } catch (error) {
-    console.error("Login Process Error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -155,25 +102,11 @@ export const logout = async (req, res) => {
 };
 
 export const checkSession = (req, res) => {
-  console.log("Comprehensive Session Check:", {
-    sessionID: req.sessionID,
-    sessionExists: !!req.session,
-    sessionUser: req.session?.user,
-    fullSessionDetails: JSON.stringify(req.session, null, 2),
-    cookieDetails: JSON.stringify(req.session?.cookie, null, 2),
-  });
-
-  if (req.session && req.session.user) {
-    return res.status(200).json({
-      user: req.session.user,
-      isAuthenticated: true,
-      sessionID: req.sessionID,
-    });
+  console.log("HELLO");
+  if (req.session.user) {
+    return res.json({ user: req.session.user });
   } else {
-    console.warn("Session Check Failed - No Active Session");
-    return res.status(401).json({
-      message: "Not authenticated",
-      isAuthenticated: false,
-    });
+    console.log("NOT LOGGED IN");
+    return res.status(401).json({ message: "Not logged in" });
   }
 };
