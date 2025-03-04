@@ -15,29 +15,29 @@ import orders from "./routes/orderRoutes.js";
 dotenv.config();
 const app = express();
 
-// ✅ Proper CORS Configuration
+app.use(express.json());
+app.use(cookieParser());
+
+// ✅ Fix CORS configuration
 app.use(
   cors({
     origin: "https://the-village-pizzeria.web.app", // Allow frontend domain
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true, // Allow cookies & sessions
+    credentials: true, // Allow cookies and sessions
   })
 );
 
-// ✅ Handle preflight requests correctly
+// ✅ Ensure preflight requests (OPTIONS) are handled correctly
 app.options("*", cors());
 
-// Middleware
-app.use(express.json());
-app.use(cookieParser());
 app.use(
   cookieSession({
     name: "session",
     keys: ["supersecretkey"], // Encryption key
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    secure: true, // Set to true in production (must be HTTPS)
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    secure: process.env.NODE_ENV === "production", // Secure cookies only in production
     httpOnly: true, // Prevent JavaScript access
-    sameSite: "none", // Allow cross-origin cookies
+    sameSite: "none", // Required for cross-origin cookies
   })
 );
 
@@ -56,7 +56,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ Define Routes AFTER Middleware
+// Routes
 app.use("/auth", authRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/item", items);
@@ -64,5 +64,4 @@ app.use("/cart", cart);
 app.use("/users", users);
 app.use("/orders", orders);
 
-// Start Server
 app.listen(5000, () => console.log("Server running on port 5000"));
