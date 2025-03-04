@@ -15,7 +15,7 @@ const app = express();
 
 app.use(express.json());
 app.use(
-  cors({ origin: "https://the-village-pizzeria.web.app/", credentials: true })
+  cors({ origin: "https://the-village-pizzeria.web.app", credentials: true })
 );
 app.use(cookieParser());
 app.use(
