@@ -76,12 +76,21 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
 
     req.session.user = { id: user.user_id, email: user.email };
-    console.log("Session After Login:", req.session); // Debug log
-    res.status(200).json({
-      success: true,
-      message: "Login successful",
-      user: req.session.user,
-      userDetails: user,
+
+    // Explicitly save the session
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session save error:", err);
+        return res.status(500).json({ message: "Session save error" });
+      }
+
+      console.log("Session After Login:", req.session);
+      res.status(200).json({
+        success: true,
+        message: "Login successful",
+        user: req.session.user,
+        userDetails: user,
+      });
     });
   } catch (error) {
     res.status(500).json({ message: "Server error" });

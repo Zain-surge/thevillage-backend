@@ -19,37 +19,33 @@ dotenv.config();
 const app = express();
 const PgSession = pgSession(session);
 
+app.use((req, res, next) => {
+  console.log("Incoming request - Session:", req.session);
+  next();
+});
+
 app.use(
   session({
     store: new PgSession({
-      pool: pool, // Use your existing PostgreSQL pool
-      tableName: "user_sessions", // Default table name
+      pool: pool,
+      tableName: "user_sessions",
+      createTableIfMissing: true, // Add this to ensure table exists
     }),
-    secret: process.env.SESSION_SECRET, // Ensure you set this in your environment variables
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Resets the cookie expiration on every request
     cookie: {
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      secure: process.env.NODE_ENV === "production", // Set to true in production
+      maxAge: 24 * 60 * 60 * 1000,
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
-      sameSite: "none", // Adjust based on your requirements
+      sameSite: "none", // Ensure this matches your frontend
     },
   })
 );
 
 app.use(express.json());
 app.use(cookieParser());
-
-// app.use(
-//   cookieSession({
-//     name: "session",
-//     keys: ["supersecretkey"], // Secret key for signing the cookie
-//     maxAge: 1000 * 60 * 60 * 24, // 24 hours
-//     secure: true, // Secure cookies only in production
-//     httpOnly: true, // Prevents JavaScript access
-//     sameSite: "none", // Allows cross-origin authentication
-//   })
-// );
 
 app.use(
   cors({
