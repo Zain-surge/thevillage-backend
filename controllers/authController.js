@@ -102,10 +102,13 @@ export const logout = async (req, res) => {
 };
 
 export const checkSession = (req, res) => {
-  console.log("Session check:", req.session); // Detailed logging
+  console.log("Full Session Details:", req.session);
+  console.log("Session ID:", req.sessionID);
+  console.log("Session User:", req.session.user);
 
   if (req.session && req.session.user) {
     return res.status(200).json({
+      sessionId: req.sessionID,
       user: req.session.user,
       isAuthenticated: true,
     });
