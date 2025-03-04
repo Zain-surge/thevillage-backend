@@ -23,6 +23,7 @@ app.use((req, res, next) => {
   console.log("Incoming request - Session:", req.session);
   next();
 });
+app.use(cookieParser());
 
 app.use(
   session({
@@ -45,7 +46,6 @@ app.use(
 );
 
 app.use(express.json());
-app.use(cookieParser());
 
 app.use(
   cors({
@@ -54,6 +54,14 @@ app.use(
     credentials: true, // Allows cookies to be sent across origins
   })
 );
+
+// Debugging middleware
+app.use((req, res, next) => {
+  console.log("Session Middleware Debug:");
+  console.log("Cookies:", req.cookies);
+  console.log("Session:", req.session);
+  next();
+});
 
 // Routes
 app.use("/auth", authRoutes);
