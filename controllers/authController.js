@@ -102,11 +102,17 @@ export const logout = async (req, res) => {
 };
 
 export const checkSession = (req, res) => {
-  console.log("HELLO");
-  if (req.session.user) {
-    return res.json({ user: req.session.user });
+  console.log("Session check:", req.session); // Detailed logging
+
+  if (req.session && req.session.user) {
+    return res.status(200).json({
+      user: req.session.user,
+      isAuthenticated: true,
+    });
   } else {
-    console.log("NOT LOGGED IN");
-    return res.status(401).json({ message: "Not logged in" });
+    return res.status(401).json({
+      message: "Not authenticated",
+      isAuthenticated: false,
+    });
   }
 };

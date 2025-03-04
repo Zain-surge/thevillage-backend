@@ -21,9 +21,9 @@ app.use(cookieParser());
 // ✅ Fix CORS configuration
 app.use(
   cors({
-    origin: "https://the-village-pizzeria.web.app", // Allow frontend domain
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true, // Allow cookies and sessions
+    origin: "https://the-village-pizzeria.web.app",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
   })
 );
 
@@ -35,7 +35,7 @@ app.use(
     name: "session",
     keys: ["supersecretkey"], // Encryption key
     maxAge: 1000 * 60 * 60 * 24, // 24 hours
-    secure: process.env.NODE_ENV === "production", // Secure cookies only in production
+    secure: true, // Secure cookies only in production
     httpOnly: true, // Prevent JavaScript access
     sameSite: "none", // Required for cross-origin cookies
   })
