@@ -30,17 +30,17 @@ app.use(
     store: new PgSession({
       pool: pool,
       tableName: "user_sessions",
-      createTableIfMissing: true, // Add this to ensure table exists
+      createTableIfMissing: true,
     }),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    rolling: true, // Resets the cookie expiration on every request
+    rolling: true, // Reset cookie on each request
     cookie: {
       maxAge: 24 * 60 * 60 * 1000,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production", // Ensure this matches your environment
       httpOnly: true,
-      sameSite: "none", // Ensure this matches your frontend
+      sameSite: "none", // Required for cross-origin with secure
     },
   })
 );
