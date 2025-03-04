@@ -3,6 +3,9 @@ import cookieSession from "cookie-session";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import session from "express-session";
+import pgSession from "connect-pg-simple";
+import pool from "./config/db.js";
 
 // Import routes
 import authRoutes from "./routes/authRoutes.js";
@@ -30,13 +33,22 @@ app.use(
 // ✅ Ensure preflight requests (OPTIONS) are handled correctly
 app.options("*", cors());
 
+// Configure PostgreSQL session store
+const pgSessionStore = pgSession(session);
+const sessionStore = new pgSessionStore({
+  pool: pool, // Reuse the existing database pool
+  tableName: "user_sessions", // Customize the table name if needed
+});
+
+// Session middleware with PostgreSQL store
 app.use(
   session({
+    store: sessionStore,
     secret: "supersecretkey", // Use environment variable
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true,
+      secure: true, // Secure in production
       httpOnly: true,
       sameSite: "none",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
