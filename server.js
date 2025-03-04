@@ -15,8 +15,15 @@ const app = express();
 
 app.use(express.json());
 app.use(
-  cors({ origin: "https://the-village-pizzeria.web.app", credentials: true })
+  cors({
+    origin: "https://the-village-pizzeria.web.app", // Remove trailing slash
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true, // If using cookies or authorization headers
+  })
 );
+
+// Handle preflight requests properly
+app.options("*", cors());
 app.use(cookieParser());
 app.use(
   session({ secret: "secretkey", resave: false, saveUninitialized: false })
