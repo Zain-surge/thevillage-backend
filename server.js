@@ -19,10 +19,16 @@ dotenv.config();
 const app = express();
 const PgSession = pgSession(session);
 
-app.use((req, res, next) => {
-  console.log("Incoming request - Session:", req.session);
-  next();
-});
+app.use(express.json());
+
+app.use(
+  cors({
+    origin: "https://the-village-pizzeria.web.app",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true, // Allows cookies to be sent across origins
+  })
+);
+
 app.use(cookieParser());
 
 app.set("trust proxy", 1); // Important for secure cookies in cloud/proxy environments
@@ -59,16 +65,6 @@ app.use((req, res, next) => {
   console.log("Session Object:", req.session);
   next();
 });
-
-app.use(express.json());
-
-app.use(
-  cors({
-    origin: "https://the-village-pizzeria.web.app",
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true, // Allows cookies to be sent across origins
-  })
-);
 
 // Routes
 app.use("/auth", authRoutes);
