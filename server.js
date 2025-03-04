@@ -25,6 +25,8 @@ app.use((req, res, next) => {
 });
 app.use(cookieParser());
 
+app.set("trust proxy", 1); // Important for secure cookies in cloud/proxy environments
+
 app.use(
   session({
     store: new PgSession({
@@ -34,16 +36,28 @@ app.use(
     }),
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: false,
-    rolling: true, // Reset cookie on each request
+    saveUninitialized: true, // Changed to true
+    rolling: true,
+    proxy: true, // Add this for cloud/proxy environments
     cookie: {
       maxAge: 24 * 60 * 60 * 1000,
-      secure: process.env.NODE_ENV === "production", // Ensure this matches your environment
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
-      sameSite: "none", // Required for cross-origin with secure
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     },
   })
 );
+
+// Add a middleware to log and debug session
+app.use((req, res, next) => {
+  console.log("Detailed Session Debug:");
+  console.log("Request Headers:", req.headers);
+  console.log("Cookies Raw:", req.headers.cookie);
+  console.log("Parsed Cookies:", req.cookies);
+  console.log("Session ID:", req.sessionID);
+  console.log("Session Object:", req.session);
+  next();
+});
 
 app.use(express.json());
 
@@ -54,14 +68,6 @@ app.use(
     credentials: true, // Allows cookies to be sent across origins
   })
 );
-
-// Debugging middleware
-app.use((req, res, next) => {
-  console.log("Session Middleware Debug:");
-  console.log("Cookies:", req.cookies);
-  console.log("Session:", req.session);
-  next();
-});
 
 // Routes
 app.use("/auth", authRoutes);

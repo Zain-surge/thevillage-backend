@@ -75,24 +75,41 @@ export const login = async (req, res) => {
     if (!isMatch)
       return res.status(400).json({ message: "Invalid credentials" });
 
-    req.session.user = { id: user.user_id, email: user.email };
+    // Explicitly set the session and save
+    return new Promise((resolve, reject) => {
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error("Session regeneration error:", err);
+          return res.status(500).json({ message: "Session error" });
+        }
 
-    // Explicitly save the session
-    req.session.save((err) => {
-      if (err) {
-        console.error("Session save error:", err);
-        return res.status(500).json({ message: "Session save error" });
-      }
+        req.session.user = { id: user.user_id, email: user.email };
 
-      console.log("Session After Login:", req.session);
-      res.status(200).json({
-        success: true,
-        message: "Login successful",
-        user: req.session.user,
-        userDetails: user,
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error("Session save error:", saveErr);
+            return res.status(500).json({ message: "Session save error" });
+          }
+
+          // Explicitly set the cookie
+          res.cookie("connect.sid", req.sessionID, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+            maxAge: 24 * 60 * 60 * 1000,
+          });
+
+          res.status(200).json({
+            success: true,
+            message: "Login successful",
+            user: req.session.user,
+            sessionId: req.sessionID,
+          });
+        });
       });
     });
   } catch (error) {
+    console.error("Login error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
