@@ -102,7 +102,7 @@ export const logout = async (req, res) => {
 };
 
 export const checkSession = (req, res) => {
-  console.log("HELLO");
+  console.log("HELLO", req.session);
   if (req.session.user) {
     return res.json({ user: req.session.user });
   } else {
