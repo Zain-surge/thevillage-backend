@@ -4,7 +4,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 
-// Import routes
 import authRoutes from "./routes/authRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import items from "./routes/items.js";
@@ -15,38 +14,44 @@ import orders from "./routes/orderRoutes.js";
 dotenv.config();
 const app = express();
 
-// ✅ Proper CORS Configuration
+app.use(express.json());
+app.use(cookieParser());
+
+// ✅ Allow All Origins (TEMPORARY - Use for debugging only)
 app.use(
   cors({
-    origin: "https://the-village-pizzeria.web.app", // Allow frontend domain
+    origin: "*", // ⚠️ This allows ALL origins (not recommended for production)
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true, // Allow cookies & sessions
+    allowedHeaders: "Content-Type, Authorization",
   })
 );
 
-// ✅ Handle preflight requests correctly
-app.options("*", cors());
+// ✅ Handle preflight requests
+app.options("*", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,HEAD,PUT,PATCH,POST,DELETE"
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.sendStatus(204);
+});
 
-// Middleware
-app.use(express.json());
-app.use(cookieParser());
+// ✅ Cookie-based Sessions (Modify if needed)
 app.use(
   cookieSession({
     name: "session",
-    keys: [process.env.SESSION_SECRET || "supersecretkey"], // Encryption key
+    keys: ["supersecretkey"],
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    secure: true, // Set to true in production (must be HTTPS)
-    httpOnly: true, // Prevent JavaScript access
-    sameSite: "none", // Allow cross-origin cookies
+    secure: "production", // Must be true for HTTPS
+    httpOnly: true,
+    sameSite: "lax", // Change to "none" if using cross-origin requests
   })
 );
 
-// ✅ Debugging: Log headers to check if CORS is applied
+// ✅ Debugging: Log headers to check CORS
 app.use((req, res, next) => {
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "https://the-village-pizzeria.web.app"
-  );
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader(
     "Access-Control-Allow-Methods",
@@ -56,7 +61,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ Define Routes AFTER Middleware
+// Routes
 app.use("/auth", authRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/item", items);
