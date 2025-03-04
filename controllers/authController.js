@@ -18,6 +18,7 @@ export const signUp = async (req, res) => {
       county,
       postal_code,
     } = req.body;
+    console.log("HELLWO I AM SIGN UP");
 
     const existingUser = await getUserByEmail(email);
     if (existingUser)
@@ -75,7 +76,13 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
 
     req.session.user = { id: user.user_id, email: user.email };
-    res.status(200).json({ success: true, message: "Login successful" });
+    console.log("Session After Login:", req.session); // Debug log
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      user: req.session.user,
+      userDetails: user,
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
