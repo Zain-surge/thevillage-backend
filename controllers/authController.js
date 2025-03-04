@@ -131,32 +131,11 @@ export const logout = async (req, res) => {
 };
 
 export const checkSession = (req, res) => {
-  // Explicitly rehydrate session if needed
-  if (!req.session.user && req.cookies["connect.sid"]) {
-    // Attempt to restore session from store
-    req.sessionStore.get(req.cookies["connect.sid"], (err, session) => {
-      if (err) {
-        return res.status(500).json({ message: "Session retrieval error" });
-      }
-
-      if (session && session.user) {
-        req.session.user = session.user;
-      }
-
-      respondToSessionCheck(req, res);
-    });
+  console.log("HELLO", req.session);
+  if (req.session.user) {
+    return res.json({ user: req.session.user });
   } else {
-    respondToSessionCheck(req, res);
-  }
-};
-
-function respondToSessionCheck(req, res) {
-  if (req.session?.user) {
-    return res.status(200).json({
-      user: req.session.user,
-      sessionId: req.sessionID,
-    });
-  } else {
+    console.log("NOT LOGGED IN");
     return res.status(401).json({ message: "Not logged in" });
   }
-}
+};
