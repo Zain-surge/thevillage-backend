@@ -91,6 +91,7 @@ export const login = async (req, res) => {
             console.error("Session save error:", saveErr);
             return res.status(500).json({ message: "Session save error" });
           }
+          console.log("SAVINGGGG COOKIIESSSS");
 
           // Explicitly set cookie
           res.cookie("connect.sid", req.sessionID, {
