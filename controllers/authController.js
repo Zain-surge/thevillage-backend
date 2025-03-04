@@ -64,29 +64,29 @@ export const verifyOtp = async (req, res) => {
   }
 };
 
-export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await getUserByEmail(email);
+// export const login = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+//     const user = await getUserByEmail(email);
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+//     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(400).json({ message: "Invalid credentials" });
+//     const isMatch = await bcrypt.compare(password, user.password);
+//     if (!isMatch)
+//       return res.status(400).json({ message: "Invalid credentials" });
 
-    req.session.user = { id: user.user_id, email: user.email };
-    console.log("Session After Login:", req.session); // Debug log
-    res.status(200).json({
-      success: true,
-      message: "Login successful",
-      user: req.session.user,
-      userDetails: user,
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
+//     req.session.user = { id: user.user_id, email: user.email };
+//     console.log("Session After Login:", req.session); // Debug log
+//     res.status(200).json({
+//       success: true,
+//       message: "Login successful",
+//       user: req.session.user,
+//       userDetails: user,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
