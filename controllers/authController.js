@@ -3,6 +3,7 @@ import pool from "../config/db.js";
 import { v4 as uuidv4 } from "uuid";
 import nodemailer from "nodemailer";
 import { getUserByEmail, createUser } from "../models/userModel.js";
+import jwt from "jsonwebtoken";
 
 const otps = {}; // Temporary storage for OTPs
 

@@ -22,6 +22,7 @@
     "express": "^4.21.2",
     "express-session": "^1.18.1",
     "ioredis": "^5.5.0",
+    "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.10.0",
     "pg": "^8.13.1",
     "qz-tray": "^2.2.4",
