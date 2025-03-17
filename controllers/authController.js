@@ -137,7 +137,7 @@ export const adminLogin = async (req, res) => {
   const { username, password } = req.body;
   try {
     const result = await pool.query(
-      "SELECT id, username, password, shop_open, radius, delivery_locations FROM admins WHERE username = $1",
+      "SELECT id, username, password, shop_open, delivery_radius, delivery_locations FROM admins WHERE username = $1",
       [username]
     );
 
