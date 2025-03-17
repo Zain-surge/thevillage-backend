@@ -136,29 +136,45 @@ export const checkSession = (req, res) => {
 export const adminLogin = async (req, res) => {
   const { username, password } = req.body;
   try {
-    console.log("TRYINGGGGG");
     const result = await pool.query(
-      "SELECT * FROM admins WHERE username = $1",
+      "SELECT id, username, password, shop_open, radius, delivery_locations FROM admins WHERE username = $1",
       [username]
     );
-    if (result.rows.length === 0)
+
+    if (result.rows.length === 0) {
+      console.log("Invalid username:", username);
       return res.status(401).json({ message: "Invalid credentials" });
+    }
 
     const admin = result.rows[0];
     const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch)
+    if (!isMatch) {
+      console.log("Invalid password for:", username);
       return res.status(401).json({ message: "Invalid credentials" });
+    }
 
     const token = jwt.sign({ adminId: admin.id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
+
     res.cookie("adminToken", token, {
       httpOnly: true,
       secure: true,
       sameSite: "None",
     });
-    res.json({ message: "Login successful" });
+
+    res.json({
+      message: "Login successful",
+      admin: {
+        id: admin.id,
+        username: admin.username,
+        shopOpen: admin.shop_open,
+        radius: admin.radius,
+        deliveryLocations: admin.delivery_locations,
+      },
+    });
   } catch (err) {
+    console.error("Admin login error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
