@@ -18,7 +18,6 @@ export const signUp = async (req, res) => {
       county,
       postal_code,
     } = req.body;
-    console.log("HELLWO I AM SIGN UP");
 
     const existingUser = await getUserByEmail(email);
     if (existingUser)
@@ -47,13 +46,11 @@ export const signUp = async (req, res) => {
 };
 
 export const verifyOtp = async (req, res) => {
-  console.log(req.body);
   const { data, otp } = req.body;
   const { email } = data; // Extract email from `data`
   if (otps[email] === otp) {
     delete otps[email];
 
-    console.log(req.body);
     const hashedPassword = await bcrypt.hash(req.body.data.password, 10);
     const newUser = await createUser({ ...req.body.data, hashedPassword });
 
@@ -91,7 +88,6 @@ export const login = async (req, res) => {
             console.error("Session save error:", saveErr);
             return res.status(500).json({ message: "Session save error" });
           }
-          console.log("SAVINGGGG COOKIIESSSS");
 
           // Explicitly set cookie
           res.cookie("connect.sid", req.sessionID, {
@@ -131,17 +127,16 @@ export const logout = async (req, res) => {
 };
 
 export const checkSession = (req, res) => {
-  console.log("HELLO", req.session);
   if (req.session.user) {
     return res.json({ user: req.session.user });
   } else {
-    console.log("NOT LOGGED IN");
     return res.status(401).json({ message: "Not logged in" });
   }
 };
 export const adminLogin = async (req, res) => {
   const { username, password } = req.body;
   try {
+    console.log("TRYINGGGGG");
     const result = await pool.query(
       "SELECT * FROM admins WHERE username = $1",
       [username]

@@ -54,16 +54,16 @@ app.use(
   })
 );
 
-// Add a middleware to log and debug session
-app.use((req, res, next) => {
-  console.log("Detailed Session Debug:");
-  console.log("Request Headers:", req.headers);
-  console.log("Cookies Raw:", req.headers.cookie);
-  console.log("Parsed Cookies:", req.cookies);
-  console.log("Session ID:", req.sessionID);
-  console.log("Session Object:", req.session);
-  next();
-});
+// // Add a middleware to log and debug session
+// app.use((req, res, next) => {
+//   console.log("Detailed Session Debug:");
+//   console.log("Request Headers:", req.headers);
+//   console.log("Cookies Raw:", req.headers.cookie);
+//   console.log("Parsed Cookies:", req.cookies);
+//   console.log("Session ID:", req.sessionID);
+//   console.log("Session Object:", req.session);
+//   next();
+// });
 
 // Routes
 app.use("/auth", authRoutes);
