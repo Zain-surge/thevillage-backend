@@ -19,6 +19,7 @@ router.get("/items", async (req, res) => {
       toppings: item.toppings,
       cheese: item.cheese,
       sauces: item.sauces,
+      subType: item.subType,
     }));
 
     res.json(items);
