@@ -4,7 +4,7 @@ import pool from "../config/db.js"; // Your database connection file
 const router = express.Router();
 
 router.get("/items", async (req, res) => {
-  console.log("TIME TO FETCH ITEMS");
+  console.log("TIME TO FETCH ITEMS NOW");
   try {
     const result = await pool.query(
       "SELECT * FROM Items WHERE availability = TRUE"
