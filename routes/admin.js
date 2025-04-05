@@ -5,6 +5,7 @@ const router = express.Router();
 // Get offers from admin table
 router.get("/offers", async (req, res) => {
   try {
+    console.log("I AM HERE TO FETCH OFFERS");
     const result = await pool.query(
       "SELECT offers FROM admins where username='admin'"
     );
