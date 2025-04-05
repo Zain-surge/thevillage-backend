@@ -11,6 +11,7 @@ import pool from "./config/db.js"; // Adjust the path to your pool file
 import authRoutes from "./routes/authRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import items from "./routes/items.js";
+import offers from "./routes/admin.js";
 import cart from "./routes/cartRoutes.js";
 import users from "./routes/userRoutes.js";
 import orders from "./routes/orderRoutes.js";
@@ -69,6 +70,8 @@ app.use(
 app.use("/auth", authRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/item", items);
+console.log("I AM HERE");
+app.use("/admin", offers);
 app.use("/cart", cart);
 app.use("/users", users);
 app.use("/orders", orders);
