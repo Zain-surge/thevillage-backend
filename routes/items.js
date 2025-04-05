@@ -18,6 +18,8 @@ router.get("/items", async (req, res) => {
       image: item.image_url,
     }));
 
+    fs.writeFileSync("menuItems.json", JSON.stringify(items, null, 2));
+
     res.json(items);
   } catch (err) {
     console.error("Error fetching items:", err);
