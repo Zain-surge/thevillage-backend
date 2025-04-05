@@ -15,6 +15,9 @@ router.get("/items", async (req, res) => {
       price: item.price_options, // JSONB field
       Type: item.type,
       image: item.image_url,
+      toppings: item.toppings,
+      cheese: item.cheese,
+      sauces: item.sauces,
     }));
 
     res.json(items);
