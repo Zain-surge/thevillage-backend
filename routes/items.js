@@ -1,6 +1,5 @@
 import express from "express";
 import pool from "../config/db.js"; // Your database connection file
-import fs from "fs";
 
 const router = express.Router();
 
@@ -17,8 +16,6 @@ router.get("/items", async (req, res) => {
       Type: item.type,
       image: item.image_url,
     }));
-
-    fs.writeFileSync("menuItems.json", JSON.stringify(items, null, 2));
 
     res.json(items);
   } catch (err) {
