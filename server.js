@@ -1,6 +1,8 @@
 import express from "express";
 import session from "express-session";
 import cookieSession from "cookie-session";
+import http from "http"; // Import Node.js HTTP module
+import { Server } from "socket.io"; // socket.io v4
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -19,6 +21,26 @@ import orders from "./routes/orderRoutes.js";
 dotenv.config();
 const app = express();
 const PgSession = pgSession(session);
+
+const server = http.createServer(app); // Create HTTP server
+const io = new Server(server, {
+  cors: {
+    origin: "https://the-village-pizzeria.web.app", // Your Firebase frontend
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log("Client connected:", socket.id);
+
+  // Send "hello" when connected
+  socket.emit("hello", "Hello from server!");
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
+  });
+});
 
 app.use(express.json());
 
