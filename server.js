@@ -24,7 +24,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: "https://the-village-pizzeria.web.app",
+    origin: ["https://the-village-pizzeria.web.app", "http://localhost:3000"],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true, // Allows cookies to be sent across origins
   })
