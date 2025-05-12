@@ -29,6 +29,49 @@ app.use(
     credentials: true, // Allows cookies to be sent across origins
   })
 );
+let clients = [];
+app.get("/events/orders", (req, res) => {
+  console.log("Client connected to /events/orders");
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  clients.push(res);
+
+  req.on("close", () => {
+    clients = clients.filter((client) => client !== res);
+    console.log("Client disconnected from /events/orders");
+  });
+});
+
+function sendToAllClients(data) {
+  clients.forEach((client) => {
+    client.write(`data: ${JSON.stringify(data)}\n\n`);
+  });
+}
+
+// Use a dedicated client from the pool for LISTEN/NOTIFY
+(async () => {
+  const client = await pool.connect();
+  await client.query("LISTEN new_order_channel");
+
+  client.on("notification", async (msg) => {
+    console.log("🔔 New order received:", msg.payload);
+
+    try {
+      const orderDetails = await getOrderDetails(msg.payload);
+      if (orderDetails) {
+        sendToAllClients(orderDetails);
+      }
+    } catch (err) {
+      console.error("❌ Error handling notification:", err);
+    }
+  });
+
+  console.log("📡 Listening on 'new_order_channel'");
+})();
 
 app.use(cookieParser());
 
