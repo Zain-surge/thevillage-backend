@@ -8,6 +8,8 @@ import pgSession from "connect-pg-simple";
 import pool from "./config/db.js"; // Adjust the path to your pool file
 import pkg from "pg";
 const { Client } = pkg;
+import http from "http";
+import { Server } from "socket.io";
 
 // Import routes
 import authRoutes from "./routes/authRoutes.js";
@@ -19,6 +21,14 @@ import users from "./routes/userRoutes.js";
 import orders from "./routes/orderRoutes.js";
 
 dotenv.config();
+const server = http.createServer(app); // Wrap Express in HTTP server
+const io = new Server(server, {
+  cors: {
+    origin: ["https://the-village-pizzeria.web.app", "http://localhost:3000"],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 const app = express();
 const PgSession = pgSession(session);
 
@@ -57,6 +67,13 @@ app.use(
   })
 );
 
+io.on("connection", (socket) => {
+  console.log("✅ Client connected:", socket.id);
+  socket.on("disconnect", () => {
+    console.log("❌ Client disconnected:", socket.id);
+  });
+});
+
 // Create a separate client for LISTEN
 const notifyClient = new Client({
   user: process.env.DB_USER,
@@ -79,7 +96,9 @@ notifyClient.on("notification", async (msg) => {
   const orderId = msg.payload;
   console.log("📬 New Order Notification:", orderId);
   const orderDetails = await fetchOrderDetails(orderId);
-  console.log("📦 Order Details:", JSON.stringify(orderDetails, null, 2));
+  if (orderDetails) {
+    io.emit("new_order", orderDetails); // 🚀 Emit to all connected clients
+  }
 });
 async function fetchOrderDetails(orderId) {
   try {
