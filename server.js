@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import pgSession from "connect-pg-simple";
 import pool from "./config/db.js"; // Adjust the path to your pool file
+import pkg from "pg";
+const { Client } = pkg;
 
 // Import routes
 import authRoutes from "./routes/authRoutes.js";
