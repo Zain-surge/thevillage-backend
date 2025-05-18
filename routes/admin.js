@@ -5,11 +5,11 @@ const router = express.Router();
 // Get offers from admin table
 router.get("/offers", async (req, res) => {
   try {
-    console.log("I AM HERE TO FETCH OFFERS");
+    // console.log("I AM HERE TO FETCH OFFERS");
     const result = await pool.query(
       "SELECT offers FROM admins where username='admin'"
     );
-    console.log(result);
+    // console.log(result);
     const offersData = result.rows.map((row) => row.offers).flat(); // Flatten if offers is array in each row
 
     res.json(offersData);
