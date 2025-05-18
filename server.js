@@ -21,6 +21,7 @@ import users from "./routes/userRoutes.js";
 import orders from "./routes/orderRoutes.js";
 
 dotenv.config();
+const app = express();
 const server = http.createServer(app); // Wrap Express in HTTP server
 const io = new Server(server, {
   cors: {
@@ -29,7 +30,7 @@ const io = new Server(server, {
     credentials: true,
   },
 });
-const app = express();
+
 const PgSession = pgSession(session);
 
 app.use(express.json());
