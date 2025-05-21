@@ -8,8 +8,9 @@ import pgSession from "connect-pg-simple";
 import pool from "./config/db.js"; // Adjust the path to your pool file
 import pkg from "pg";
 const { Client } = pkg;
-import http from "http";
-import { Server } from "socket.io";
+// import http from "http";
+// import { Server } from "socket.io";
+import WebSocket, { WebSocketServer } from "ws";
 
 // Import routes
 import authRoutes from "./routes/authRoutes.js";
@@ -22,14 +23,14 @@ import orders from "./routes/orderRoutes.js";
 
 dotenv.config();
 const app = express();
-const server = http.createServer(app); // Wrap Express in HTTP server
-const io = new Server(server, {
-  cors: {
-    origin: ["https://the-village-pizzeria.web.app", "http://localhost:3000"],
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
+// const server = http.createServer(app); // Wrap Express in HTTP server
+// const io = new Server(server, {
+//   cors: {
+//     origin: ["https://the-village-pizzeria.web.app", "http://localhost:3000"],
+//     methods: ["GET", "POST"],
+//     credentials: true,
+//   },
+// });
 
 const PgSession = pgSession(session);
 
@@ -68,15 +69,31 @@ app.use(
   })
 );
 
-io.on("connection", (socket) => {
-  console.log("✅ Client connected:", socket.id);
-  socket.on("disconnect", () => {
-    console.log("❌ Client disconnected:", socket.id);
+// io.on("connection", (socket) => {
+//   console.log("✅ Client connected:", socket.id);
+//   socket.on("disconnect", () => {
+//     console.log("❌ Client disconnected:", socket.id);
+//   });
+// });
+
+// Create a separate client for LISTEN
+
+// Initialize WebSocket server
+const wss = new WebSocketServer({ port: 8080 });
+let clients = [];
+
+wss.on("connection", (ws) => {
+  console.log("✅ Frontend connected to WebSocket");
+  clients.push(ws);
+
+  ws.on("close", () => {
+    console.log("⚠️ Frontend disconnected from WebSocket");
+    clients = clients.filter((client) => client !== ws);
   });
 });
 
-// Create a separate client for LISTEN
-const notifyClient = new Client({
+// PostgreSQL connection
+const client = new Client({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
@@ -85,36 +102,48 @@ const notifyClient = new Client({
   ssl: { rejectUnauthorized: false },
 });
 
-notifyClient
+client
   .connect()
   .then(() => {
-    console.log("📡 Listening for new orders...");
-    notifyClient.query("LISTEN new_order_channel");
+    console.log("✅ Connected to PostgreSQL database successfully");
   })
-  .catch((err) => console.error("❌ Listener DB connection error:", err));
+  .catch((err) => {
+    console.error("❌ Error connecting to PostgreSQL:", err);
+  });
 
-notifyClient.on("notification", async (msg) => {
-  const orderId = msg.payload;
-  console.log("📬 New Order Notification:", orderId);
-  const orderDetails = await fetchOrderDetails(orderId);
-  if (orderDetails) {
-    io.emit("new_order", orderDetails); // 🚀 Emit to all connected clients
+client.query("LISTEN new_order_channel", (err) => {
+  if (err) {
+    console.error("❌ Error listening to new_order_channel:", err);
+  } else {
+    console.log("✅ Listening to PostgreSQL channel: new_order_channel");
   }
 });
-async function fetchOrderDetails(orderId) {
+
+client.on("notification", async (msg) => {
+  console.log("🔔 New order notification received:", msg.payload);
+  const orderDetails = await getOrderDetails(msg.payload);
+
+  if (!orderDetails) {
+    console.warn("⚠️ No order details found for order ID:", msg.payload);
+    return;
+  }
+
+  console.log("📦 Broadcasting order details to clients:", orderDetails);
+
+  clients.forEach((ws) => {
+    ws.send(JSON.stringify(orderDetails));
+  });
+});
+
+async function getOrderDetails(orderId) {
   try {
-    const client = await pool.connect();
+    console.log(`🔍 Fetching details for order ID: ${orderId}`);
 
     const orderQuery = `
       SELECT 
-        o.order_id, o.payment_type, o.order_type, o.total_price, o.extra_notes, 
-        COALESCE(u.name, g.name) AS customer_name, 
-        COALESCE(u.email, g.email) AS customer_email, 
-        COALESCE(u.phone_number, g.phone_number) AS customer_phone,
-        COALESCE(u.street_address, g.street_address) AS customer_address, 
-        COALESCE(u.city, g.city) AS customer_city, 
-        COALESCE(u.county, g.county) AS customer_county, 
-        COALESCE(u.postal_code, g.postal_code) AS customer_postal_code
+        o.order_id, o.payment_type, o.order_type, o.total_price, o.extra_notes,
+        COALESCE(u.name, g.name) AS customer_name,
+        COALESCE(u.phone_number, g.phone_number) AS customer_phone
       FROM Orders o
       LEFT JOIN Users u ON o.user_id = u.user_id
       LEFT JOIN Guests g ON o.guest_id = g.guest_id
@@ -122,30 +151,91 @@ async function fetchOrderDetails(orderId) {
     `;
 
     const itemsQuery = `
-      SELECT 
-        oi.quantity, i.item_name, oi.total_price, oi.description
+      SELECT oi.quantity, i.item_name, oi.total_price, oi.description
       FROM Order_Items oi
       JOIN Items i ON oi.item_id = i.item_id
       WHERE oi.order_id = $1;
     `;
 
     const orderRes = await client.query(orderQuery, [orderId]);
-    if (orderRes.rows.length === 0) {
-      client.release();
-      return null;
-    }
+    console.log("📝 Order query result:", orderRes.rows);
 
-    const order = orderRes.rows[0];
+    if (orderRes.rows.length === 0) return null;
+
     const itemsRes = await client.query(itemsQuery, [orderId]);
-    order.items = itemsRes.rows;
+    console.log("🧾 Items query result:", itemsRes.rows);
 
-    client.release();
-    return order;
+    const orderDetails = orderRes.rows[0];
+    orderDetails.items = itemsRes.rows;
+
+    return orderDetails;
   } catch (error) {
     console.error("❌ Error fetching order details:", error);
     return null;
   }
 }
+
+// notifyClient
+//   .connect()
+//   .then(() => {
+//     console.log("📡 Listening for new orders...");
+//     notifyClient.query("LISTEN new_order_channel");
+//   })
+//   .catch((err) => console.error("❌ Listener DB connection error:", err));
+
+// notifyClient.on("notification", async (msg) => {
+//   const orderId = msg.payload;
+//   console.log("📬 New Order Notification:", orderId);
+//   const orderDetails = await fetchOrderDetails(orderId);
+//   if (orderDetails) {
+//     io.emit("new_order", orderDetails); // 🚀 Emit to all connected clients
+//   }
+// });
+// async function fetchOrderDetails(orderId) {
+//   try {
+//     const client = await pool.connect();
+
+//     const orderQuery = `
+//       SELECT
+//         o.order_id, o.payment_type, o.order_type, o.total_price, o.extra_notes,
+//         COALESCE(u.name, g.name) AS customer_name,
+//         COALESCE(u.email, g.email) AS customer_email,
+//         COALESCE(u.phone_number, g.phone_number) AS customer_phone,
+//         COALESCE(u.street_address, g.street_address) AS customer_address,
+//         COALESCE(u.city, g.city) AS customer_city,
+//         COALESCE(u.county, g.county) AS customer_county,
+//         COALESCE(u.postal_code, g.postal_code) AS customer_postal_code
+//       FROM Orders o
+//       LEFT JOIN Users u ON o.user_id = u.user_id
+//       LEFT JOIN Guests g ON o.guest_id = g.guest_id
+//       WHERE o.order_id = $1;
+//     `;
+
+//     const itemsQuery = `
+//       SELECT
+//         oi.quantity, i.item_name, oi.total_price, oi.description
+//       FROM Order_Items oi
+//       JOIN Items i ON oi.item_id = i.item_id
+//       WHERE oi.order_id = $1;
+//     `;
+
+//     const orderRes = await client.query(orderQuery, [orderId]);
+//     if (orderRes.rows.length === 0) {
+//       client.release();
+//       return null;
+//     }
+
+//     const order = orderRes.rows[0];
+//     const itemsRes = await client.query(itemsQuery, [orderId]);
+//     order.items = itemsRes.rows;
+
+//     client.release();
+//     return order;
+//   } catch (error) {
+//     console.error("❌ Error fetching order details:", error);
+//     return null;
+//   }
+// }
 
 // // Add a middleware to log and debug session
 // app.use((req, res, next) => {
@@ -169,4 +259,4 @@ app.use("/users", users);
 app.use("/orders", orders);
 
 app.listen(5000, () => console.log("Server running on port 5000"));
-server.listen(5000, () => console.log("Server running on port 5000"));
+// server.listen(5000, () => console.log("Server running on port 5000"));
