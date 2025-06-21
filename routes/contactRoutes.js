@@ -15,15 +15,15 @@ router.post("/", async (req, res) => {
     const transporter = nodemailer.createTransport({
       service: "gmail", // or e.g., "hotmail", or use custom SMTP
       auth: {
-        user: process.env.CONTACT_EMAIL_USER,
-        pass: process.env.CONTACT_EMAIL_PASS,
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
     });
 
     // Prepare the email
     const mailOptions = {
       from: `"${name}" <${email}>`,
-      to: process.env.CONTACT_EMAIL_RECEIVER, // e.g., your own business email
+      to: process.env.EMAIL_USER, // e.g., your own business email
       subject: "New Contact Form Submission",
       html: `
         <h3>New Contact Message</h3>
