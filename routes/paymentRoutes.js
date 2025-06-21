@@ -47,7 +47,7 @@ const transporter = nodemailer.createTransport({
 router.post("/send-receipt", async (req, res) => {
   try {
     const { customerInfo, cartItems, totalPrice } = req.body;
-    console.log(cartItems);
+    // console.log(cartItems);
 
     const receiptHTML = `
       <html>

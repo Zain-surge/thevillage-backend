@@ -19,6 +19,7 @@ import offers from "./routes/admin.js";
 import cart from "./routes/cartRoutes.js";
 import users from "./routes/userRoutes.js";
 import orders from "./routes/orderRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -168,6 +169,8 @@ app.use("/admin", offers);
 app.use("/cart", cart);
 app.use("/users", users);
 app.use("/orders", orders);
+app.use("/contact", contactRoutes);
+
 // ✅ Health check for Render
 app.get("/health", (req, res) => res.send("Server is healthy! ✅"));
 
