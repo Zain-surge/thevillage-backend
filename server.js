@@ -62,20 +62,20 @@ app.use(
 );
 
 // ✅ Create shared HTTP server for Express + WebSocket
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server }); // ✅ Attach WebSocket to HTTP
+// const server = http.createServer(app);
+// const wss = new WebSocket.Server({ server }); // ✅ Attach WebSocket to HTTP
 
-let clients = [];
+// let clients = [];
 
-wss.on("connection", (ws) => {
-  console.log("✅ Frontend connected to WebSocket");
-  clients.push(ws);
+// wss.on("connection", (ws) => {
+//   console.log("✅ Frontend connected to WebSocket");
+//   clients.push(ws);
 
-  ws.on("close", () => {
-    console.log("⚠️ Frontend disconnected from WebSocket");
-    clients = clients.filter((client) => client !== ws);
-  });
-});
+//   ws.on("close", () => {
+//     console.log("⚠️ Frontend disconnected from WebSocket");
+//     clients = clients.filter((client) => client !== ws);
+//   });
+// });
 
 // PostgreSQL connection
 const client = new Client({
@@ -115,9 +115,9 @@ client.on("notification", async (msg) => {
 
   console.log("📦 Broadcasting order details to clients:", orderDetails);
 
-  clients.forEach((ws) => {
-    ws.send(JSON.stringify(orderDetails));
-  });
+  // clients.forEach((ws) => {
+  //   ws.send(JSON.stringify(orderDetails));
+  // });
 });
 
 async function getOrderDetails(orderId) {
@@ -175,4 +175,5 @@ app.use("/contact", contactRoutes);
 app.get("/health", (req, res) => res.send("Server is healthy! ✅"));
 
 // ✅ Start combined HTTP/WebSocket server
-server.listen(port, () => console.log(`🚀 Server running on port ${port}`));
+const port = process.env.PORT || 5000;
+app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
