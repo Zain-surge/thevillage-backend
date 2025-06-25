@@ -124,4 +124,86 @@ router.get("/today", async (req, res) => {
   }
 });
 
+router.post("/full-create", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const {
+      user_id,
+      guest,
+      transaction_id,
+      payment_type,
+      order_type,
+      total_price,
+      extra_notes,
+      status,
+      order_source,
+      items,
+    } = req.body;
+
+    await client.query("BEGIN");
+
+    // Step 1: Create guest if guest info is provided
+    let guest_id = null;
+    if (!user_id && guest) {
+      const guestResult = await client.query(
+        `INSERT INTO Guests (name, email, phone_number, street_address, city, county, postal_code)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING guest_id`,
+        [
+          guest.name,
+          guest.email,
+          guest.phone_number,
+          guest.street_address,
+          guest.city,
+          guest.county,
+          guest.postal_code,
+        ]
+      );
+      guest_id = guestResult.rows[0].guest_id;
+    }
+
+    // Step 2: Create order
+    const orderResult = await client.query(
+      `INSERT INTO Orders (user_id, guest_id, transaction_id, payment_type, order_type, total_price, extra_notes, status, order_source)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING order_id`,
+      [
+        user_id || null,
+        guest_id,
+        transaction_id,
+        payment_type,
+        order_type,
+        total_price,
+        extra_notes,
+        status,
+        order_source,
+      ]
+    );
+    const order_id = orderResult.rows[0].order_id;
+
+    // Step 3: Batch insert items
+    const insertValues = items
+      .map(
+        (item) =>
+          `('${order_id}', '${item.item_id}', ${item.quantity}, '${item.description}', ${item.total_price})`
+      )
+      .join(",");
+
+    await client.query(
+      `INSERT INTO Order_Items (order_id, item_id, quantity, description, total_price)
+       VALUES ${insertValues}`
+    );
+
+    await client.query("COMMIT");
+
+    res.status(201).json({ order_id });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("❌ Full order creation failed:", error);
+    res.status(500).json({ error: "Full order creation failed" });
+  } finally {
+    client.release();
+  }
+});
+
 export default router;
