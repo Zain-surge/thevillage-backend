@@ -29,7 +29,7 @@ const server = createServer(app);
 const io = new Server(server, {
   cors: {
     origin: ["https://the-village-pizzeria.web.app", "http://localhost:3000"],
-    methods: ["GET", "POST"],
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
   },
 });
