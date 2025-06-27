@@ -21,7 +21,7 @@ router.get("/items", async (req, res) => {
       sauces: item.sauces,
       subType: item.subtype,
     }));
-    // console.log(items);
+    console.log(items);
 
     res.json(items);
   } catch (err) {
