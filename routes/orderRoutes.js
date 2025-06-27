@@ -1,5 +1,8 @@
 import express from "express";
 import pool from "../config/db.js"; // Your database connection file
+import nodemailer from "nodemailer";
+
+dotenv.config();
 
 const router = express.Router();
 router.post("/create", async (req, res) => {
@@ -30,6 +33,77 @@ router.post("/create", async (req, res) => {
   );
   console.log("ORDER ADDED SUCCESSSFULLY");
   res.json({ order_id: result.rows[0].order_id });
+});
+
+// Nodemailer Config
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+router.post("/update-status", async (req, res) => {
+  const { order_id, status } = req.body;
+
+  try {
+    // Update order status in DB
+    const updateResult = await pool.query(
+      "UPDATE Orders SET status = $1 WHERE order_id = $2 RETURNING order_type, user_id, guest_id",
+      [status, order_id]
+    );
+
+    if (updateResult.rowCount === 0) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    const { order_type, user_id, guest_id } = updateResult.rows[0];
+
+    // Only proceed with email if status is green
+    if (status === "green") {
+      let emailResult;
+
+      if (user_id) {
+        emailResult = await pool.query(
+          "SELECT email FROM Users WHERE user_id = $1",
+          [user_id]
+        );
+      } else if (guest_id) {
+        emailResult = await pool.query(
+          "SELECT email FROM Guests WHERE guest_id = $1",
+          [guest_id]
+        );
+      }
+
+      const customer_email = emailResult?.rows?.[0]?.email;
+
+      if (customer_email) {
+        // Use your preferred email sending method (e.g., Nodemailer)
+        const subject =
+          order_type === "delivery"
+            ? "Your order is on its way!"
+            : "Your order is ready for pickup!";
+        const message =
+          order_type === "delivery"
+            ? "Hi! Your order is now on its way. 🍕🚗"
+            : "Hi! Your order is ready for pickup. 🍕🎉";
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: customer_email,
+          subject,
+          message,
+        });
+
+        console.log("Email receipt sent to:", customer_email);
+      }
+    }
+
+    res.status(200).json({ message: "Order status updated" });
+  } catch (error) {
+    console.error("❌ Error updating status:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 router.post("/add-item", async (req, res) => {
