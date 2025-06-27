@@ -106,17 +106,33 @@ client.query("LISTEN new_order_channel", (err) => {
   }
 });
 
-client.on("notification", async (msg) => {
-  console.log("🔔 New order notification received:", msg.payload);
-  const orderDetails = await getOrderDetails(msg.payload);
+client.query("LISTEN offer_update_channel", (err) => {
+  if (err) {
+    console.error("❌ Error listening to offer_update_channel:", err);
+  } else {
+    console.log("✅ Listening to PostgreSQL channel: offer_update_channel");
+  }
+});
 
-  if (!orderDetails) {
-    console.warn("⚠️ No order details found for order ID:", msg.payload);
-    return;
+client.on("notification", async (msg) => {
+  if (msg.channel === "new_order_channel") {
+    console.log("🔔 New order notification received:", msg.payload);
+    const orderDetails = await getOrderDetails(msg.payload);
+
+    if (!orderDetails) {
+      console.warn("⚠️ No order details found for order ID:", msg.payload);
+      return;
+    }
+
+    console.log("📦 Broadcasting order details to clients:", orderDetails);
+    io.emit("new_order", orderDetails);
   }
 
-  console.log("📦 Broadcasting order details to clients:", orderDetails);
-  io.emit("new_order", orderDetails);
+  if (msg.channel === "offer_update_channel") {
+    const updatedAdmin = JSON.parse(msg.payload);
+    console.log("📣 Broadcasting updated offers:", updatedAdmin.offers);
+    io.emit("offers_updated", updatedAdmin.offers); // 🔁 Emit to frontend
+  }
 });
 
 async function getOrderDetails(orderId) {
