@@ -1,6 +1,7 @@
 import express from "express";
 import pool from "../config/db.js"; // Your database connection file
 import nodemailer from "nodemailer";
+import dotenv from "dotenv";
 
 dotenv.config();
 
