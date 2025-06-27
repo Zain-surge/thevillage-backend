@@ -8,8 +8,8 @@ import pgSession from "connect-pg-simple";
 import pool from "./config/db.js"; // Adjust the path to your pool file
 import pkg from "pg";
 const { Client } = pkg;
-import WebSocket, { WebSocketServer } from "ws";
-import http from "http"; // ✅ Required to share server
+import { createServer } from "http";
+import { Server } from "socket.io";
 
 // Import routes
 import authRoutes from "./routes/authRoutes.js";
@@ -23,6 +23,24 @@ import contactRoutes from "./routes/contactRoutes.js";
 
 dotenv.config();
 const app = express();
+
+const server = createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: ["https://the-village-pizzeria.web.app", "http://localhost:3000"],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log("🟢 New client connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("🔴 Client disconnected:", socket.id);
+  });
+});
 
 const PgSession = pgSession(session);
 
@@ -61,22 +79,6 @@ app.use(
   })
 );
 
-// ✅ Create shared HTTP server for Express + WebSocket
-// const server = http.createServer(app);
-// const wss = new WebSocket.Server({ server }); // ✅ Attach WebSocket to HTTP
-
-// let clients = [];
-
-// wss.on("connection", (ws) => {
-//   console.log("✅ Frontend connected to WebSocket");
-//   clients.push(ws);
-
-//   ws.on("close", () => {
-//     console.log("⚠️ Frontend disconnected from WebSocket");
-//     clients = clients.filter((client) => client !== ws);
-//   });
-// });
-
 // PostgreSQL connection
 const client = new Client({
   user: process.env.DB_USER,
@@ -114,10 +116,7 @@ client.on("notification", async (msg) => {
   }
 
   console.log("📦 Broadcasting order details to clients:", orderDetails);
-
-  // clients.forEach((ws) => {
-  //   ws.send(JSON.stringify(orderDetails));
-  // });
+  io.emit("new_order", orderDetails);
 });
 
 async function getOrderDetails(orderId) {
@@ -174,6 +173,8 @@ app.use("/contact", contactRoutes);
 // ✅ Health check for Render
 app.get("/health", (req, res) => res.send("Server is healthy! ✅"));
 
-// ✅ Start combined HTTP/WebSocket server
 const port = process.env.PORT || 5000;
-app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
+// app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
+
+// const port = process.env.PORT || 5000;
+server.listen(port, () => console.log(`🚀 Server running on port ${port}`));
