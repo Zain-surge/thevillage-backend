@@ -208,7 +208,7 @@ router.get("/today", async (req, res) => {
 });
 
 router.post("/full-create", async (req, res) => {
-  console.log("REQUEST", req);
+  console.log("REQUEST", req.body);
   const client = await pool.connect();
   try {
     const {
