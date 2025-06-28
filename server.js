@@ -114,6 +114,14 @@ client.query("LISTEN offer_update_channel", (err) => {
   }
 });
 
+client.query("LISTEN shop_status_channel", (err) => {
+  if (err) {
+    console.error("❌ Error listening to shop_status_channel:", err);
+  } else {
+    console.log("✅ Listening to PostgreSQL channel: shop_status_channel");
+  }
+});
+
 client.on("notification", async (msg) => {
   if (msg.channel === "new_order_channel") {
     setTimeout(async () => {
@@ -142,6 +150,12 @@ client.on("notification", async (msg) => {
     const updatedAdmin = JSON.parse(msg.payload);
     console.log("📣 Broadcasting updated offers:", updatedAdmin.offers);
     io.emit("offers_updated", updatedAdmin.offers); // 🔁 Emit to frontend
+  }
+
+  if (msg.channel === "shop_status_channel") {
+    const payload = JSON.parse(msg.payload);
+    console.log("📣 Shop status updated:", payload);
+    io.emit("shop_status_updated", payload); // Emit to all connected clients
   }
 });
 
