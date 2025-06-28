@@ -151,9 +151,14 @@ async function getOrderDetails(orderId) {
 
     const orderQuery = `
       SELECT 
-        o.order_id, o.payment_type, o.order_type, o.total_price, o.extra_notes, o.order_source,
+        o.order_id, o.payment_type,o.transaction_id, o.order_type, o.total_price, o.extra_notes, o.order_source,o.change,o.status,
         COALESCE(u.name, g.name) AS customer_name,
-        COALESCE(u.phone_number, g.phone_number) AS customer_phone
+          COALESCE(u.email, g.email) AS customer_email,
+          COALESCE(u.phone_number, g.phone_number) AS phone_number,
+          COALESCE(u.street_address, g.street_address) AS street_address,
+          COALESCE(u.city, g.city) AS city,
+          COALESCE(u.county, g.county) AS county,
+          COALESCE(u.postal_code, g.postal_code) AS postal_code
       FROM Orders o
       LEFT JOIN Users u ON o.user_id = u.user_id
       LEFT JOIN Guests g ON o.guest_id = g.guest_id
@@ -161,7 +166,7 @@ async function getOrderDetails(orderId) {
     `;
 
     const itemsQuery = `
-      SELECT oi.quantity, i.item_name, oi.total_price, oi.description
+      SELECT oi.quantity, i.item_name, oi.total_price, oi.description, i.item_type
       FROM Order_Items oi
       JOIN Items i ON oi.item_id = i.item_id
       WHERE oi.order_id = $1;
