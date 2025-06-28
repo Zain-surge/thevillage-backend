@@ -209,6 +209,15 @@ router.get("/today", async (req, res) => {
 
 router.post("/full-create", async (req, res) => {
   console.log("REQUEST", req.body);
+
+  let rawBody = "";
+  req.on("data", (chunk) => {
+    rawBody += chunk;
+  });
+
+  req.on("end", () => {
+    console.log("Raw request body:", rawBody); // 👀 See if anything is sent
+  });
   const client = await pool.connect();
   try {
     const {
