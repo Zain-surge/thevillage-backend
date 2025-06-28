@@ -223,6 +223,13 @@ router.post("/full-create", async (req, res) => {
       order_source,
       items,
     } = req.body;
+    console.log(
+      "Parsed transaction_id:",
+      transaction_id,
+      user_id,
+      guest,
+      payment_type
+    );
 
     await client.query("BEGIN");
 
