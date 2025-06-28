@@ -135,7 +135,7 @@ client.on("notification", async (msg) => {
           `ℹ️ Skipping emit. Order source is ${orderDetails.order_source}`
         );
       }
-    }, 200); // Wait 200ms before querying
+    }, 3000); // Wait 200ms before querying
   }
 
   if (msg.channel === "offer_update_channel") {
