@@ -124,8 +124,17 @@ client.on("notification", async (msg) => {
       return;
     }
 
-    console.log("📦 Broadcasting order details to clients:", orderDetails);
-    io.emit("new_order", orderDetails);
+    if (orderDetails.order_source === "Website") {
+      console.log(
+        "📦 Broadcasting Website order details to clients:",
+        orderDetails
+      );
+      io.emit("new_order", orderDetails);
+    } else {
+      console.log(
+        `ℹ️ Skipping emit. Order source is ${orderDetails.order_source}`
+      );
+    }
   }
 
   if (msg.channel === "offer_update_channel") {
@@ -141,7 +150,7 @@ async function getOrderDetails(orderId) {
 
     const orderQuery = `
       SELECT 
-        o.order_id, o.payment_type, o.order_type, o.total_price, o.extra_notes,
+        o.order_id, o.payment_type, o.order_type, o.total_price, o.extra_notes, o.order_source,
         COALESCE(u.name, g.name) AS customer_name,
         COALESCE(u.phone_number, g.phone_number) AS customer_phone
       FROM Orders o
