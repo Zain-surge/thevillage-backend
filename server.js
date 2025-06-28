@@ -116,25 +116,26 @@ client.query("LISTEN offer_update_channel", (err) => {
 
 client.on("notification", async (msg) => {
   if (msg.channel === "new_order_channel") {
-    console.log("🔔 New order notification received:", msg.payload);
-    const orderDetails = await getOrderDetails(msg.payload);
+    setTimeout(async () => {
+      const orderDetails = await getOrderDetails(msg.payload);
 
-    if (!orderDetails) {
-      console.warn("⚠️ No order details found for order ID:", msg.payload);
-      return;
-    }
+      if (!orderDetails) {
+        console.warn("⚠️ No order details found for order ID:", msg.payload);
+        return;
+      }
 
-    if (orderDetails.order_source === "Website") {
-      console.log(
-        "📦 Broadcasting Website order details to clients:",
-        orderDetails
-      );
-      io.emit("new_order", orderDetails);
-    } else {
-      console.log(
-        `ℹ️ Skipping emit. Order source is ${orderDetails.order_source}`
-      );
-    }
+      if (orderDetails.order_source === "Website") {
+        console.log(
+          "📦 Broadcasting Website order details to clients:",
+          orderDetails
+        );
+        io.emit("new_order", orderDetails);
+      } else {
+        console.log(
+          `ℹ️ Skipping emit. Order source is ${orderDetails.order_source}`
+        );
+      }
+    }, 200); // Wait 200ms before querying
   }
 
   if (msg.channel === "offer_update_channel") {
