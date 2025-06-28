@@ -52,4 +52,39 @@ router.put("/offers/update", async (req, res) => {
   }
 });
 
+router.put("/shop-toggle", async (req, res) => {
+  const { shop_open } = req.body;
+
+  try {
+    await pool.query(
+      "UPDATE admins SET shop_open = $1 WHERE username = 'admin'",
+      [shop_open]
+    );
+
+    res
+      .status(200)
+      .json({ message: `Shop is now ${shop_open ? "open" : "closed"}` });
+  } catch (error) {
+    console.error("❌ Error toggling shop:", error);
+    res.status(500).json({ error: "Failed to toggle shop status" });
+  }
+});
+
+// Get current shop status
+router.get("/shop-status", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT shop_open FROM admins WHERE username = 'admin'"
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Admin not found" });
+    }
+
+    res.status(200).json({ shop_open: result.rows[0].shop_open });
+  } catch (error) {
+    console.error("❌ Error fetching shop status:", error);
+    res.status(500).json({ error: "Failed to fetch shop status" });
+  }
+});
+
 export default router;
