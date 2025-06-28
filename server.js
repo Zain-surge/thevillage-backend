@@ -166,7 +166,7 @@ async function getOrderDetails(orderId) {
     `;
 
     const itemsQuery = `
-      SELECT oi.quantity, i.item_name, oi.total_price, oi.description, i.item_type
+      SELECT oi.quantity, i.item_name, oi.total_price, oi.description, i.type
       FROM Order_Items oi
       JOIN Items i ON oi.item_id = i.item_id
       WHERE oi.order_id = $1;
