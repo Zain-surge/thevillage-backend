@@ -74,7 +74,7 @@ router.put("/shop-toggle", async (req, res) => {
 router.get("/shop-status", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT shop_open FROM admins WHERE username = 'admin'"
+      "SELECT shop_open, shop_openn_time, shop_close_time FROM admins WHERE username = 'admin'"
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Admin not found" });
