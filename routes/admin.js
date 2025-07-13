@@ -74,7 +74,7 @@ router.put("/shop-toggle", async (req, res) => {
 router.get("/shop-status", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT shop_open, shop_openn_time, shop_close_time FROM admins WHERE username = 'admin'"
+      "SELECT shop_open, shop_open_time, shop_close_time FROM admins WHERE username = 'admin'"
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Admin not found" });
@@ -84,6 +84,21 @@ router.get("/shop-status", async (req, res) => {
   } catch (error) {
     console.error("❌ Error fetching shop status:", error);
     res.status(500).json({ error: "Failed to fetch shop status" });
+  }
+});
+router.put("/update-shop-timings", async (req, res) => {
+  const { shop_open_time, shop_close_time } = req.body;
+
+  try {
+    await pool.query(
+      "UPDATE admins SET shop_open_time = $1, shop_close_time = $2 WHERE username = 'admin'",
+      [shop_open_time, shop_close_time]
+    );
+
+    res.status(200).json({ message: "Shop timings updated successfully" });
+  } catch (error) {
+    console.error("❌ Error updating shop timings:", error);
+    res.status(500).json({ error: "Failed to update shop timings" });
   }
 });
 
