@@ -20,6 +20,7 @@ import cart from "./routes/cartRoutes.js";
 import users from "./routes/userRoutes.js";
 import orders from "./routes/orderRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
+import driverRoutes from "./routes/driverRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -214,6 +215,7 @@ app.use("/cart", cart);
 app.use("/users", users);
 app.use("/orders", orders);
 app.use("/contact", contactRoutes);
+app.use("/drivers", driverRoutes);
 
 // ✅ Health check for Render
 app.get("/health", (req, res) => res.send("Server is healthy! ✅"));
