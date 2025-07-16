@@ -110,4 +110,74 @@ router.put("/update-shop-timings", async (req, res) => {
   }
 });
 
+router.get("/sales-report/today", async (req, res) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10); // Format: YYYY-MM-DD
+
+    // Total sales
+    const totalSalesQuery = await pool.query(
+      `SELECT COALESCE(SUM(total_price), 0) AS total_sales 
+       FROM orders 
+       WHERE DATE(created_at) = $1`,
+      [today]
+    );
+
+    // Sales by payment type
+    const byPaymentQuery = await pool.query(
+      `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total 
+       FROM orders 
+       WHERE DATE(created_at) = $1 
+       GROUP BY payment_type`,
+      [today]
+    );
+
+    // Sales by order type
+    const byOrderTypeQuery = await pool.query(
+      `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total 
+       FROM orders 
+       WHERE DATE(created_at) = $1 
+       GROUP BY order_type`,
+      [today]
+    );
+
+    // Sales by order source
+    const byOrderSourceQuery = await pool.query(
+      `SELECT COALESCE(order_source, 'Unknown') AS source, COUNT(*) AS count, SUM(total_price) AS total 
+       FROM orders 
+       WHERE DATE(created_at) = $1 
+       GROUP BY COALESCE(order_source, 'Unknown')`,
+      [today]
+    );
+
+    // Most selling item
+    const mostSellingItemQuery = await pool.query(
+      `SELECT 
+         oi.item_id,
+         i.item_name,
+         SUM(oi.quantity) AS quantity_sold,
+         SUM(oi.total_price) AS total_sales
+       FROM order_items oi
+       JOIN items i ON oi.item_id = i.item_id
+       JOIN orders o ON oi.order_id = o.id
+       WHERE DATE(o.created_at) = $1
+       GROUP BY oi.item_id, i.item_name
+       ORDER BY quantity_sold DESC
+       LIMIT 1`,
+      [today]
+    );
+
+    res.status(200).json({
+      date: today,
+      total_sales: totalSalesQuery.rows[0].total_sales,
+      sales_by_payment_type: byPaymentQuery.rows,
+      sales_by_order_type: byOrderTypeQuery.rows,
+      sales_by_order_source: byOrderSourceQuery.rows,
+      most_selling_item: mostSellingItemQuery.rows[0] || {},
+    });
+  } catch (error) {
+    console.error("❌ Error generating sales report:", error);
+    res.status(500).json({ error: "Failed to generate sales report" });
+  }
+});
+
 export default router;
