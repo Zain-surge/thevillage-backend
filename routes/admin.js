@@ -158,7 +158,7 @@ router.get("/sales-report/today", async (req, res) => {
          SUM(oi.total_price) AS total_sales
        FROM order_items oi
        JOIN items i ON oi.item_id = i.item_id
-       JOIN orders o ON oi.order_id = o.id
+       JOIN orders o ON oi.order_id = o.order_id
        WHERE DATE(o.created_at) = $1
        GROUP BY oi.item_id, i.item_name
        ORDER BY quantity_sold DESC
@@ -227,7 +227,7 @@ router.get("/sales-report/weekly", async (req, res) => {
          SUM(oi.total_price) AS total_sales
        FROM order_items oi
        JOIN items i ON oi.item_id = i.item_id
-       JOIN orders o ON oi.order_id = o.id
+       JOIN orders o ON oi.order_id = o.order_id
        WHERE DATE(o.created_at) BETWEEN $1 AND $2
        GROUP BY oi.item_id, i.item_name
        ORDER BY quantity_sold DESC
@@ -296,7 +296,7 @@ router.get("/sales-report/monthly", async (req, res) => {
          SUM(oi.total_price) AS total_sales
        FROM order_items oi
        JOIN items i ON oi.item_id = i.item_id
-       JOIN orders o ON oi.order_id = o.id
+       JOIN orders o ON oi.order_id = o.order_id
        WHERE DATE(o.created_at) BETWEEN $1 AND $2
        GROUP BY oi.item_id, i.item_name
        ORDER BY quantity_sold DESC
