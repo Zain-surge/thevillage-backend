@@ -179,5 +179,143 @@ router.get("/sales-report/today", async (req, res) => {
     res.status(500).json({ error: "Failed to generate sales report" });
   }
 });
+router.get("/sales-report/weekly", async (req, res) => {
+  try {
+    const today = new Date();
+    const lastWeek = new Date();
+    lastWeek.setDate(today.getDate() - 7);
+
+    const fromDate = lastWeek.toISOString().slice(0, 10);
+    const toDate = today.toISOString().slice(0, 10);
+
+    const totalSales = await pool.query(
+      `SELECT COALESCE(SUM(total_price), 0) AS total_sales 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2`,
+      [fromDate, toDate]
+    );
+
+    const byPayment = await pool.query(
+      `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2 
+       GROUP BY payment_type`,
+      [fromDate, toDate]
+    );
+
+    const byOrderType = await pool.query(
+      `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2 
+       GROUP BY order_type`,
+      [fromDate, toDate]
+    );
+
+    const byOrderSource = await pool.query(
+      `SELECT COALESCE(order_source, 'Unknown') AS source, COUNT(*) AS count, SUM(total_price) AS total 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2 
+       GROUP BY COALESCE(order_source, 'Unknown')`,
+      [fromDate, toDate]
+    );
+
+    const mostSellingItem = await pool.query(
+      `SELECT 
+         oi.item_id,
+         i.item_name,
+         SUM(oi.quantity) AS quantity_sold,
+         SUM(oi.total_price) AS total_sales
+       FROM order_items oi
+       JOIN items i ON oi.item_id = i.item_id
+       JOIN orders o ON oi.order_id = o.id
+       WHERE DATE(o.created_at) BETWEEN $1 AND $2
+       GROUP BY oi.item_id, i.item_name
+       ORDER BY quantity_sold DESC
+       LIMIT 1`,
+      [fromDate, toDate]
+    );
+
+    res.status(200).json({
+      period: { from: fromDate, to: toDate },
+      total_sales: totalSales.rows[0].total_sales,
+      sales_by_payment_type: byPayment.rows,
+      sales_by_order_type: byOrderType.rows,
+      sales_by_order_source: byOrderSource.rows,
+      most_selling_item: mostSellingItem.rows[0] || {},
+    });
+  } catch (error) {
+    console.error("❌ Error generating weekly sales report:", error);
+    res.status(500).json({ error: "Failed to generate weekly sales report" });
+  }
+});
+router.get("/sales-report/monthly", async (req, res) => {
+  try {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const today = new Date();
+
+    const fromDate = firstDay.toISOString().slice(0, 10);
+    const toDate = today.toISOString().slice(0, 10);
+
+    const totalSales = await pool.query(
+      `SELECT COALESCE(SUM(total_price), 0) AS total_sales 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2`,
+      [fromDate, toDate]
+    );
+
+    const byPayment = await pool.query(
+      `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2 
+       GROUP BY payment_type`,
+      [fromDate, toDate]
+    );
+
+    const byOrderType = await pool.query(
+      `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2 
+       GROUP BY order_type`,
+      [fromDate, toDate]
+    );
+
+    const byOrderSource = await pool.query(
+      `SELECT COALESCE(order_source, 'Unknown') AS source, COUNT(*) AS count, SUM(total_price) AS total 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2 
+       GROUP BY COALESCE(order_source, 'Unknown')`,
+      [fromDate, toDate]
+    );
+
+    const mostSellingItem = await pool.query(
+      `SELECT 
+         oi.item_id,
+         i.item_name,
+         SUM(oi.quantity) AS quantity_sold,
+         SUM(oi.total_price) AS total_sales
+       FROM order_items oi
+       JOIN items i ON oi.item_id = i.item_id
+       JOIN orders o ON oi.order_id = o.id
+       WHERE DATE(o.created_at) BETWEEN $1 AND $2
+       GROUP BY oi.item_id, i.item_name
+       ORDER BY quantity_sold DESC
+       LIMIT 1`,
+      [fromDate, toDate]
+    );
+
+    res.status(200).json({
+      period: { from: fromDate, to: toDate },
+      total_sales: totalSales.rows[0].total_sales,
+      sales_by_payment_type: byPayment.rows,
+      sales_by_order_type: byOrderType.rows,
+      sales_by_order_source: byOrderSource.rows,
+      most_selling_item: mostSellingItem.rows[0] || {},
+    });
+  } catch (error) {
+    console.error("❌ Error generating monthly sales report:", error);
+    res.status(500).json({ error: "Failed to generate monthly sales report" });
+  }
+});
 
 export default router;
