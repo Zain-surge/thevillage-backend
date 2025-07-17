@@ -46,23 +46,29 @@ const transporter = nodemailer.createTransport({
 });
 
 router.post("/update-status", async (req, res) => {
-  const { order_id, status } = req.body;
+  const { order_id, status, driver_id } = req.body;
 
   try {
     // Update order status in DB
     const updateResult = await pool.query(
-      "UPDATE Orders SET status = $1 WHERE order_id = $2 RETURNING order_type, user_id, guest_id",
-      [status, order_id]
+      `UPDATE Orders SET status = $1, driver_id = $2 WHERE order_id = $3
+       RETURNING order_type, user_id, guest_id, driver_id`,
+      [status, driver_id, order_id]
     );
 
     if (updateResult.rowCount === 0) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    const { order_type, user_id, guest_id } = updateResult.rows[0];
+    const {
+      order_type,
+      user_id,
+      guest_id,
+      driver_id: updatedDriverId,
+    } = updateResult.rows[0];
 
     // Only proceed with email if status is green
-    if (status === "green") {
+    if (status === "green" && updatedDriverId) {
       let emailResult;
 
       if (user_id) {
@@ -137,6 +143,7 @@ router.get("/today", async (req, res) => {
           o.created_at,
           o.change_due,
           o.order_source,
+          o.driver_id, 
           COALESCE(u.name, g.name) AS customer_name,
           COALESCE(u.email, g.email) AS customer_email,
           COALESCE(u.phone_number, g.phone_number) AS phone_number,
@@ -171,6 +178,7 @@ router.get("/today", async (req, res) => {
           payment_type: row.payment_type,
           transaction_id: row.transaction_id,
           order_type: row.order_type,
+          driver_id: row.driver_id,
           status: row.status,
           created_at: row.created_at,
           change_due: row.change_due,
@@ -303,6 +311,80 @@ router.post("/full-create", async (req, res) => {
     res.status(500).json({ error: "Full order creation failed" });
   } finally {
     client.release();
+  }
+});
+const normalizePhone = (phone) => {
+  return phone.replace(/[^0-9]/g, ""); // Keep only digits
+};
+
+router.post("/search-customer", async (req, res) => {
+  const { phone_number } = req.body;
+
+  if (!phone_number) {
+    return res.status(400).json({ error: "Phone number is required" });
+  }
+
+  const normalizedInput = normalizePhone(phone_number);
+
+  try {
+    // Search in Users table
+    const userResult = await pool.query(
+      `
+      SELECT name, email, street_address, city, county, postal_code, phone_number
+      FROM Users
+      WHERE REGEXP_REPLACE(phone_number, '[^0-9]', '', 'g') = $1
+      LIMIT 1
+    `,
+      [normalizedInput]
+    );
+
+    if (userResult.rows.length > 0) {
+      const user = userResult.rows[0];
+      return res.json({
+        source: "user",
+        name: user.name,
+        email: user.email,
+        address: {
+          street: user.street_address,
+          city: user.city,
+          county: user.county,
+          postal_code: user.postal_code,
+        },
+        phone_number: user.phone_number,
+      });
+    }
+
+    // Search in Guests table
+    const guestResult = await pool.query(
+      `
+      SELECT name, email, street_address, city, county, postal_code, phone_number
+      FROM Guests
+      WHERE REGEXP_REPLACE(phone_number, '[^0-9]', '', 'g') = $1
+      LIMIT 1
+    `,
+      [normalizedInput]
+    );
+
+    if (guestResult.rows.length > 0) {
+      const guest = guestResult.rows[0];
+      return res.json({
+        source: "guest",
+        name: guest.name,
+        email: guest.email,
+        address: {
+          street: guest.street_address,
+          city: guest.city,
+          county: guest.county,
+          postal_code: guest.postal_code,
+        },
+        phone_number: guest.phone_number,
+      });
+    }
+
+    res.status(404).json({ message: "Customer not found" });
+  } catch (error) {
+    console.error("❌ Error searching for customer:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 

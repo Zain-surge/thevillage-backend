@@ -123,6 +123,19 @@ client.query("LISTEN shop_status_channel", (err) => {
   }
 });
 
+client.query("LISTEN order_status_or_driver_change_channel", (err) => {
+  if (err) {
+    console.error(
+      "❌ Error listening to order_status_or_driver_change_channel:",
+      err
+    );
+  } else {
+    console.log(
+      "✅ Listening to PostgreSQL channel: order_status_or_driver_change_channel"
+    );
+  }
+});
+
 client.on("notification", async (msg) => {
   if (msg.channel === "new_order_channel") {
     setTimeout(async () => {
@@ -157,6 +170,11 @@ client.on("notification", async (msg) => {
     const payload = JSON.parse(msg.payload);
     console.log("📣 Shop status updated:", payload);
     io.emit("shop_status_updated", payload); // Emit to all connected clients
+  }
+  if (msg.channel === "order_status_or_driver_change_channel") {
+    const change = JSON.parse(msg.payload);
+    console.log("🔁 Order status or driver change:", change);
+    io.emit("order_status_or_driver_changed", change);
   }
 });
 
