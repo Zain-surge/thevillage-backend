@@ -31,15 +31,14 @@ router.get("/items", async (req, res) => {
 
 // Set item availability (true/false)
 router.put("/set-availability", async (req, res) => {
+  console.log("AVAILABILITY");
   const { item_id, availability } = req.body;
 
   if (typeof item_id === "undefined" || typeof availability !== "boolean") {
-    return res
-      .status(400)
-      .json({
-        error:
-          "Invalid input. 'item_id' and 'availability' (boolean) are required.",
-      });
+    return res.status(400).json({
+      error:
+        "Invalid input. 'item_id' and 'availability' (boolean) are required.",
+    });
   }
 
   try {
