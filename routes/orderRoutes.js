@@ -17,9 +17,10 @@ router.post("/create", async (req, res) => {
     extra_notes,
     status,
     order_source,
+    driver_id,
   } = req.body;
   const result = await pool.query(
-    "INSERT INTO Orders (user_id, guest_id, transaction_id, payment_type, order_type, total_price, extra_notes,status,order_source) VALUES ($1, $2, $3, $4, $5, $6, $7,$8,$9) RETURNING order_id",
+    "INSERT INTO Orders (user_id, guest_id, transaction_id, payment_type, order_type, total_price, extra_notes,status,order_source,driver_id) VALUES ($1, $2, $3, $4, $5, $6, $7,$8,$9,$10) RETURNING order_id",
     [
       user_id,
       guest_id,
@@ -30,6 +31,7 @@ router.post("/create", async (req, res) => {
       extra_notes,
       status,
       order_source,
+      driver_id,
     ]
   );
   console.log("ORDER ADDED SUCCESSSFULLY");
