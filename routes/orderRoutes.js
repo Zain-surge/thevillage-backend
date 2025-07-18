@@ -238,6 +238,7 @@ router.post("/full-create", async (req, res) => {
       extra_notes,
       status,
       order_source,
+      change_due,
       items,
     } = req.body;
     console.log(
@@ -272,8 +273,8 @@ router.post("/full-create", async (req, res) => {
 
     // Step 2: Create order
     const orderResult = await client.query(
-      `INSERT INTO Orders (user_id, guest_id, transaction_id, payment_type, order_type, total_price, extra_notes, status, order_source)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO Orders (user_id, guest_id, transaction_id, payment_type, order_type, total_price, extra_notes, status, order_source,change_due)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING order_id`,
       [
         user_id || null,
@@ -285,6 +286,7 @@ router.post("/full-create", async (req, res) => {
         extra_notes,
         status,
         order_source,
+        change_due || 0,
       ]
     );
     const order_id = orderResult.rows[0].order_id;
@@ -384,6 +386,92 @@ router.post("/search-customer", async (req, res) => {
     res.status(404).json({ message: "Customer not found" });
   } catch (error) {
     console.error("❌ Error searching for customer:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.get("/details/:order_id", async (req, res) => {
+  const { order_id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        o.order_id,
+        o.payment_type,
+        o.transaction_id,
+        o.order_type,
+        o.total_price AS order_total_price,
+        o.extra_notes AS order_extra_notes,
+        o.status,
+        o.created_at,
+        o.change_due,
+        o.order_source,
+        o.driver_id,
+        COALESCE(u.name, g.name) AS customer_name,
+        COALESCE(u.email, g.email) AS customer_email,
+        COALESCE(u.phone_number, g.phone_number) AS phone_number,
+        COALESCE(u.street_address, g.street_address) AS street_address,
+        COALESCE(u.city, g.city) AS city,
+        COALESCE(u.county, g.county) AS county,
+        COALESCE(u.postal_code, g.postal_code) AS postal_code,
+        i.item_name,
+        i.type AS item_type,
+        oi.quantity,
+        oi.description AS item_description,
+        oi.total_price AS item_total_price
+      FROM Orders o
+      LEFT JOIN Users u ON o.user_id = u.user_id
+      LEFT JOIN Guests g ON o.guest_id = g.guest_id
+      JOIN Order_Items oi ON o.order_id = oi.order_id
+      JOIN Items i ON oi.item_id = i.item_id
+      WHERE o.order_id = $1
+      `,
+      [order_id]
+    );
+
+    const rows = result.rows;
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Construct the order object
+    const orderData = {
+      order_id: rows[0].order_id,
+      payment_type: rows[0].payment_type,
+      transaction_id: rows[0].transaction_id,
+      order_type: rows[0].order_type,
+      total_price: rows[0].order_total_price,
+      extra_notes: rows[0].order_extra_notes,
+      status: rows[0].status,
+      created_at: rows[0].created_at,
+      change_due: rows[0].change_due,
+      order_source: rows[0].order_source,
+      driver_id: rows[0].driver_id,
+      customer_name: rows[0].customer_name,
+      customer_email: rows[0].customer_email,
+      phone_number: rows[0].phone_number,
+      street_address: rows[0].street_address,
+      city: rows[0].city,
+      county: rows[0].county,
+      postal_code: rows[0].postal_code,
+      items: [],
+    };
+
+    rows.forEach((row) => {
+      orderData.items.push({
+        item_name: row.item_name,
+        item_type: row.item_type,
+        quantity: row.quantity,
+        item_description: row.item_description,
+        item_total_price: row.item_total_price,
+      });
+    });
+
+    res.status(200).json(orderData);
+  } catch (error) {
+    console.error("❌ Error fetching order details:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
