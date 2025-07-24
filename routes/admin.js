@@ -2,6 +2,7 @@ import express from "express";
 import pool from "../config/db.js"; // Your database connection file
 const router = express.Router();
 
+const COLORS = ["#00C49F", "#FF8042"]; // Green for growth, orange for the rest
 // Get offers from admin table
 router.get("/offers", async (req, res) => {
   try {
@@ -177,7 +178,7 @@ router.get("/sales-report/today", async (req, res) => {
       [todayStr]
     );
 
-    const todaySales = parseFloat(totalSalesToday.rows[0].total_sales);
+    const todaySales = parseFloat(totalSalesQuery.rows[0].total_sales);
     const lastWeekSales = parseFloat(totalSalesLastWeek.rows[0].total_sales);
 
     let growth = 0;
