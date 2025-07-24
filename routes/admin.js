@@ -112,14 +112,25 @@ router.put("/update-shop-timings", async (req, res) => {
 
 router.get("/sales-report/today", async (req, res) => {
   try {
-    const today = new Date().toISOString().slice(0, 10); // Format: YYYY-MM-DD
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+
+    const lastWeekSameDay = new Date(today);
+    lastWeekSameDay.setDate(today.getDate() - 7);
+    const lastWeekStr = lastWeekSameDay.toISOString().slice(0, 10); // Format: YYYY-MM-DD
 
     // Total sales
     const totalSalesQuery = await pool.query(
       `SELECT COALESCE(SUM(total_price), 0) AS total_sales 
        FROM orders 
        WHERE DATE(created_at) = $1`,
-      [today]
+      [todayStr]
+    );
+    const totalSalesLastWeek = await pool.query(
+      `SELECT COALESCE(SUM(total_price), 0) AS total_sales 
+       FROM orders 
+       WHERE DATE(created_at) = $1`,
+      [lastWeekStr]
     );
 
     // Sales by payment type
@@ -128,7 +139,7 @@ router.get("/sales-report/today", async (req, res) => {
        FROM orders 
        WHERE DATE(created_at) = $1 
        GROUP BY payment_type`,
-      [today]
+      [todayStr]
     );
 
     // Sales by order type
@@ -137,7 +148,7 @@ router.get("/sales-report/today", async (req, res) => {
        FROM orders 
        WHERE DATE(created_at) = $1 
        GROUP BY order_type`,
-      [today]
+      [todayStr]
     );
 
     // Sales by order source
@@ -146,7 +157,7 @@ router.get("/sales-report/today", async (req, res) => {
        FROM orders 
        WHERE DATE(created_at) = $1 
        GROUP BY COALESCE(order_source, 'Unknown')`,
-      [today]
+      [todayStr]
     );
 
     // Most selling item
@@ -163,12 +174,21 @@ router.get("/sales-report/today", async (req, res) => {
        GROUP BY oi.item_id, i.item_name
        ORDER BY quantity_sold DESC
        LIMIT 1`,
-      [today]
+      [todayStr]
     );
 
+    const todaySales = parseFloat(totalSalesToday.rows[0].total_sales);
+    const lastWeekSales = parseFloat(totalSalesLastWeek.rows[0].total_sales);
+
+    let growth = 0;
+    if (lastWeekSales > 0) {
+      growth = ((todaySales - lastWeekSales) / lastWeekSales) * 100;
+    }
+
     res.status(200).json({
-      date: today,
+      date: todayStr,
       total_sales: totalSalesQuery.rows[0].total_sales,
+      sales_growth_percentage: parseFloat(growth.toFixed(2)),
       sales_by_payment_type: byPaymentQuery.rows,
       sales_by_order_type: byOrderTypeQuery.rows,
       sales_by_order_source: byOrderSourceQuery.rows,
