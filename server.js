@@ -29,7 +29,11 @@ const server = createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["https://the-village-pizzeria.web.app", "http://localhost:3000"],
+    origin: [
+      "https://the-village-pizzeria.web.app",
+      "http://localhost:3000",
+      "https://dallas-gio.web.app/",
+    ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
   },
@@ -49,7 +53,11 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: ["https://the-village-pizzeria.web.app", "http://localhost:3000"],
+    origin: [
+      "https://the-village-pizzeria.web.app",
+      "http://localhost:3000",
+      "https://dallas-gio.web.app/",
+    ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true, // Allows cookies to be sent across origins
   })
