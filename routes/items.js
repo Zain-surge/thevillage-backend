@@ -7,7 +7,7 @@ router.get("/items", async (req, res) => {
   console.log("TIME TO FETCH ITEMS NOW");
   try {
     const result = await pool.query(
-      "SELECT * FROM Items Where brand_name='TVP'"
+      "SELECT * FROM Items Where brand_name='Dallas'"
     );
     const items = result.rows.map((item) => ({
       id: item.item_id,
