@@ -684,4 +684,64 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
     res.status(500).json({ error: "Failed to generate monthly sales report" });
   }
 });
+
+// Driver report for a specific date (no filters)
+router.get("/driver-report/:date", async (req, res) => {
+  try {
+    const { date } = req.params;
+
+    // Validate date format (YYYY-MM-DD)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
+    }
+
+    // 1. Driver-wise total order count
+    const driverSummaryQuery = await pool.query(
+      `SELECT
+        d.id AS driver_id,
+        d.name AS driver_name,
+        COUNT(o.order_id) AS total_orders
+      FROM
+        orders o
+      JOIN drivers d ON o.driver_id = d.id
+      WHERE
+        DATE(o.created_at) = $1
+      GROUP BY d.id, d.name
+      ORDER BY total_orders DESC`,
+      [date]
+    );
+
+    // 2. Driver-wise delivery addresses
+    const driverDeliveryLocationsQuery = await pool.query(
+      `SELECT
+        d.id AS driver_id,
+        d.name AS driver_name,
+        COALESCE(u.street_address, g.street_address) AS street_address,
+        COALESCE(u.city, g.city) AS city,
+        COALESCE(u.county, g.county) AS county,
+        COALESCE(u.postal_code, g.postal_code) AS postal_code,
+        COUNT(o.order_id) AS orders_to_location
+      FROM
+        orders o
+      JOIN drivers d ON o.driver_id = d.id
+      LEFT JOIN users u ON o.user_id = u.id
+      LEFT JOIN guests g ON o.guest_id = g.guest_id
+      WHERE
+        DATE(o.created_at) = $1
+      GROUP BY d.id, d.name, street_address, city, county, postal_code
+      ORDER BY d.name`,
+      [date]
+    );
+
+    res.status(200).json({
+      date,
+      driver_order_summary: driverSummaryQuery.rows,
+      driver_delivery_locations: driverDeliveryLocationsQuery.rows,
+    });
+  } catch (error) {
+    console.error("❌ Error generating driver report:", error);
+    res.status(500).json({ error: "Failed to generate driver report" });
+  }
+});
+
 export default router;
