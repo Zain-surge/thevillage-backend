@@ -557,21 +557,31 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
 
     const fromDate = firstDay.toISOString().slice(0, 10);
     const toDate = lastDay.toISOString().slice(0, 10);
+    const { source, payment, orderType } = req.query;
+    const sourceParam = source === 'All' || !source ? null : source;
+    const paymentParam = payment === 'All' || !payment ? null : payment;
+    const orderTypeParam = orderType === 'All' || !orderType ? null : orderType;
 
     // Total sales
     const totalSales = await pool.query(
       `SELECT COALESCE(SUM(total_price), 0) AS total_sales 
        FROM orders 
-       WHERE DATE(created_at) BETWEEN $1 AND $2`,
-      [fromDate, toDate]
+       WHERE DATE(created_at) BETWEEN $1 AND $2
+       AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR payment_type = $4)
+    AND ($5::text IS NULL OR order_type = $5)`,
+      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
     );
 
     // Total orders
     const totalOrders = await pool.query(
       `SELECT COUNT(*) AS total_orders 
        FROM orders 
-       WHERE DATE(created_at) BETWEEN $1 AND $2`,
-      [fromDate, toDate]
+       WHERE DATE(created_at) BETWEEN $1 AND $2
+       AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR payment_type = $4)
+    AND ($5::text IS NULL OR order_type = $5)`,
+      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
     );
 
     // Sales by payment type
@@ -579,8 +589,11 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
       `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total 
        FROM orders 
        WHERE DATE(created_at) BETWEEN $1 AND $2 
+       AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR payment_type = $4)
+    AND ($5::text IS NULL OR order_type = $5)
        GROUP BY payment_type`,
-      [fromDate, toDate]
+      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
     );
 
     // Sales by order type
@@ -588,8 +601,11 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
       `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total 
        FROM orders 
        WHERE DATE(created_at) BETWEEN $1 AND $2 
+       AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR payment_type = $4)
+    AND ($5::text IS NULL OR order_type = $5)
        GROUP BY order_type`,
-      [fromDate, toDate]
+      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
     );
 
     // Sales by order source
@@ -597,8 +613,11 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
       `SELECT COALESCE(order_source, 'Unknown') AS source, COUNT(*) AS count, SUM(total_price) AS total 
        FROM orders 
        WHERE DATE(created_at) BETWEEN $1 AND $2 
+       AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR payment_type = $4)
+    AND ($5::text IS NULL OR order_type = $5)
        GROUP BY COALESCE(order_source, 'Unknown')`,
-      [fromDate, toDate]
+      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
     );
 
     // Most sold item
@@ -612,10 +631,13 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
        JOIN items i ON oi.item_id = i.item_id
        JOIN orders o ON oi.order_id = o.order_id
        WHERE DATE(o.created_at) BETWEEN $1 AND $2
+       AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR o.payment_type = $4)
+    AND ($5::text IS NULL OR o.order_type = $5)
        GROUP BY oi.item_id, i.item_name
        ORDER BY quantity_sold DESC
        LIMIT 1`,
-      [fromDate, toDate]
+      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
     );
 
     // Most sold type
@@ -628,10 +650,13 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
        JOIN items i ON oi.item_id = i.item_id
        JOIN orders o ON oi.order_id = o.order_id
        WHERE DATE(o.created_at) BETWEEN $1 AND $2
+       AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR o.payment_type = $4)
+    AND ($5::text IS NULL OR o.order_type = $5)
        GROUP BY i.type
        ORDER BY quantity_sold DESC
        LIMIT 1`,
-      [fromDate, toDate]
+      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
     );
 
     const monthNames = [
