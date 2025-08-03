@@ -397,7 +397,6 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
     const sourceParam = source === 'All' || !source ? null : source;
     const paymentParam = payment === 'All' || !payment ? null : payment;
     const orderTypeParam = orderType === 'All' || !orderType ? null : orderType;
-    console.log("DATA RECIEVED: ", date, sourceParam, paymentParam, orderTypeParam)
 
     // Total sales
     const totalSales = await pool.query(
