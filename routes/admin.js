@@ -210,6 +210,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
     const sourceParam = source === 'All' || !source ? null : source;
     const paymentParam = payment === 'All' || !payment ? null : payment;
     const orderTypeParam = orderType === 'All' || !orderType ? null : orderType;
+    console.log("DATA RECIEVED: ", date, sourceParam, paymentParam, orderTypeParam)
 
 
     // Validate date format (YYYY-MM-DD)
@@ -312,7 +313,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
        WHERE DATE(o.created_at) = $1
        AND ($2::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $2)
     AND ($3::text IS NULL OR o.payment_type = $3)
-    AND ($4::text IS NULL OR 0.order_type = $4)
+    AND ($4::text IS NULL OR o.order_type = $4)
        GROUP BY oi.item_id, i.item_name
        ORDER BY quantity_sold DESC
        LIMIT 1`,
@@ -331,7 +332,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
        WHERE DATE(o.created_at) = $1
        AND ($2::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $2)
     AND ($3::text IS NULL OR o.payment_type = $3)
-    AND ($4::text IS NULL OR 0.order_type = $4)
+    AND ($4::text IS NULL OR o.order_type = $4)
        GROUP BY i.type
        ORDER BY quantity_sold DESC
        LIMIT 1`,
