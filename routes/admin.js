@@ -688,8 +688,9 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
 // Driver report for a specific date (no filters)
 router.get("/driver-report/:date", async (req, res) => {
   try {
+    console.log("ENTERED")
     const { date } = req.params;
-
+    console.log("DRIVER REPORT DATE:",date)
     // Validate date format (YYYY-MM-DD)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
@@ -734,6 +735,7 @@ router.get("/driver-report/:date", async (req, res) => {
     );
 
     res.status(200).json({
+    
       date,
       driver_order_summary: driverSummaryQuery.rows,
       driver_delivery_locations: driverDeliveryLocationsQuery.rows,
