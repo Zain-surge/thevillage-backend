@@ -725,7 +725,7 @@ router.get("/driver-report/:date", async (req, res) => {
       FROM
         orders o
       JOIN drivers d ON o.driver_id = d.id
-      LEFT JOIN users u ON o.user_id = u.id
+      LEFT JOIN users u ON o.user_id = u.user_id
       LEFT JOIN guests g ON o.guest_id = g.guest_id
       WHERE
         DATE(o.created_at) = $1
