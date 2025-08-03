@@ -729,7 +729,13 @@ router.get("/driver-report/:date", async (req, res) => {
       LEFT JOIN guests g ON o.guest_id = g.guest_id
       WHERE
         DATE(o.created_at) = $1
-      GROUP BY d.id, d.name, street_address, city, county, postal_code
+      GROUP BY
+  d.id,
+  d.name,
+  COALESCE(u.street_address, g.street_address),
+  COALESCE(u.city, g.city),
+  COALESCE(u.county, g.county),
+  COALESCE(u.postal_code, g.postal_code)
       ORDER BY d.name`,
       [date]
     );
