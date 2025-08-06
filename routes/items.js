@@ -7,7 +7,7 @@ router.get("/items", async (req, res) => {
   console.log("TIME TO FETCH ITEMS NOW");
   try {
     const result = await pool.query(
-      "SELECT * FROM Items Where brand_name='TVP'"
+      "SELECT item_id,item_name, description,price_options,type,toppings, cheese, sauces,subtype, availability  FROM Items Where brand_name='TVP'"
     );
     const items = result.rows.map((item) => ({
       id: item.item_id,
@@ -15,7 +15,6 @@ router.get("/items", async (req, res) => {
       description: item.description,
       price: item.price_options, // JSONB field
       Type: item.type,
-      image: item.image_url,
       toppings: item.toppings,
       cheese: item.cheese,
       sauces: item.sauces,
