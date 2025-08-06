@@ -585,6 +585,57 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
       [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
     );
 
+    // Most delivered postal code (only for delivery orders and when no orderType filter or orderType is 'delivery')
+let mostDeliveredPostalCodeQuery = { rows: [null] };
+if (orderTypeParam === null || orderTypeParam.toLowerCase() === 'delivery') {
+  mostDeliveredPostalCodeQuery = await pool.query(
+    `SELECT 
+       COALESCE(u.postal_code, g.postal_code) AS postal_code,
+       COUNT(*) AS delivery_count,
+       SUM(o.total_price) AS total_delivery_sales,
+       COUNT(CASE WHEN o.user_id IS NOT NULL THEN 1 END) AS registered_user_deliveries,
+       COUNT(CASE WHEN o.guest_id IS NOT NULL THEN 1 END) AS guest_deliveries
+     FROM orders o
+     LEFT JOIN users u ON o.user_id = u.user_id
+     LEFT JOIN guests g ON o.guest_id = g.guest_id
+     WHERE DATE(o.created_at) BETWEEN $1 AND $2
+       AND LOWER(o.order_type) = 'delivery'
+       AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
+       AND ($4::text IS NULL OR o.payment_type = $4)
+       AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
+     GROUP BY COALESCE(u.postal_code, g.postal_code)
+     ORDER BY delivery_count DESC
+     LIMIT 1`,
+    [fromDate, toDate, sourceParam, paymentParam]
+  );
+}
+
+// All items sold in the week with detailed pricing
+const allItemsSoldQuery = await pool.query(
+  `SELECT 
+     oi.item_id,
+     i.item_name,
+     i.type,
+     i.subtype,
+     SUM(oi.quantity) AS total_quantity_sold,
+     ROUND(AVG(oi.total_price / oi.quantity), 2) AS average_unit_price,
+     ROUND(MIN(oi.total_price / oi.quantity), 2) AS min_unit_price,
+     ROUND(MAX(oi.total_price / oi.quantity), 2) AS max_unit_price,
+     SUM(oi.total_price) AS total_item_sales,
+     COUNT(DISTINCT oi.order_id) AS orders_containing_item,
+     ROUND((SUM(oi.total_price) / (SELECT COALESCE(SUM(total_price), 1) FROM orders WHERE DATE(created_at) BETWEEN $1 AND $2 AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3) AND ($4::text IS NULL OR payment_type = $4) AND ($5::text IS NULL OR order_type = $5)) * 100), 2) AS percentage_of_total_sales
+   FROM order_items oi
+   JOIN items i ON oi.item_id = i.item_id
+   JOIN orders o ON oi.order_id = o.order_id
+   WHERE DATE(o.created_at) BETWEEN $1 AND $2
+   AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
+   AND ($4::text IS NULL OR o.payment_type = $4)
+   AND ($5::text IS NULL OR o.order_type = $5)
+   GROUP BY oi.item_id, i.item_name, i.type, i.subtype
+   ORDER BY total_quantity_sold DESC`,
+  [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
+);
+
     res.status(200).json({
       period: {
         year: yearNum,
@@ -599,6 +650,8 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
       sales_by_order_source: byOrderSource.rows,
       most_sold_item: mostSoldItem.rows[0] || {},
       most_sold_type: mostSoldType.rows[0] || {},
+      most_delivered_postal_code: mostDeliveredPostalCodeQuery.rows[0] || null,
+  all_items_sold: allItemsSoldQuery.rows,
     });
   } catch (error) {
     console.error("❌ Error generating weekly sales report:", error);
@@ -749,6 +802,57 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
       [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
     );
 
+    // Most delivered postal code (only for delivery orders and when no orderType filter or orderType is 'delivery')
+let mostDeliveredPostalCodeQuery = { rows: [null] };
+if (orderTypeParam === null || orderTypeParam.toLowerCase() === 'delivery') {
+  mostDeliveredPostalCodeQuery = await pool.query(
+    `SELECT 
+       COALESCE(u.postal_code, g.postal_code) AS postal_code,
+       COUNT(*) AS delivery_count,
+       SUM(o.total_price) AS total_delivery_sales,
+       COUNT(CASE WHEN o.user_id IS NOT NULL THEN 1 END) AS registered_user_deliveries,
+       COUNT(CASE WHEN o.guest_id IS NOT NULL THEN 1 END) AS guest_deliveries
+     FROM orders o
+     LEFT JOIN users u ON o.user_id = u.user_id
+     LEFT JOIN guests g ON o.guest_id = g.guest_id
+     WHERE DATE(o.created_at) BETWEEN $1 AND $2
+       AND LOWER(o.order_type) = 'delivery'
+       AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
+       AND ($4::text IS NULL OR o.payment_type = $4)
+       AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
+     GROUP BY COALESCE(u.postal_code, g.postal_code)
+     ORDER BY delivery_count DESC
+     LIMIT 1`,
+    [fromDate, toDate, sourceParam, paymentParam]
+  );
+}
+
+// All items sold in the month with detailed pricing
+const allItemsSoldQuery = await pool.query(
+  `SELECT 
+     oi.item_id,
+     i.item_name,
+     i.type,
+     i.subtype,
+     SUM(oi.quantity) AS total_quantity_sold,
+     ROUND(AVG(oi.total_price / oi.quantity), 2) AS average_unit_price,
+     ROUND(MIN(oi.total_price / oi.quantity), 2) AS min_unit_price,
+     ROUND(MAX(oi.total_price / oi.quantity), 2) AS max_unit_price,
+     SUM(oi.total_price) AS total_item_sales,
+     COUNT(DISTINCT oi.order_id) AS orders_containing_item,
+     ROUND((SUM(oi.total_price) / (SELECT COALESCE(SUM(total_price), 1) FROM orders WHERE DATE(created_at) BETWEEN $1 AND $2 AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3) AND ($4::text IS NULL OR payment_type = $4) AND ($5::text IS NULL OR order_type = $5)) * 100), 2) AS percentage_of_total_sales
+   FROM order_items oi
+   JOIN items i ON oi.item_id = i.item_id
+   JOIN orders o ON oi.order_id = o.order_id
+   WHERE DATE(o.created_at) BETWEEN $1 AND $2
+   AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
+   AND ($4::text IS NULL OR o.payment_type = $4)
+   AND ($5::text IS NULL OR o.order_type = $5)
+   GROUP BY oi.item_id, i.item_name, i.type, i.subtype
+   ORDER BY total_quantity_sold DESC`,
+  [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
+);
+
     const monthNames = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
@@ -768,6 +872,8 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
       sales_by_order_source: byOrderSource.rows,
       most_sold_item: mostSoldItem.rows[0] || {},
       most_sold_type: mostSoldType.rows[0] || {},
+      most_delivered_postal_code: mostDeliveredPostalCodeQuery.rows[0] || null,
+  all_items_sold: allItemsSoldQuery.rows,
     });
   } catch (error) {
     console.error("❌ Error generating monthly sales report:", error);
