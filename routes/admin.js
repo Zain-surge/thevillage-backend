@@ -177,6 +177,42 @@ router.get("/sales-report/today", async (req, res) => {
        LIMIT 1`,
       [todayStr]
     );
+    const mostDeliveredPostalCodeQuery = await pool.query(
+      `SELECT 
+         COALESCE(u.postal_code, g.postal_code) AS postal_code,
+         COUNT(*) AS delivery_count,
+         SUM(o.total_price) AS total_delivery_sales
+       FROM orders o
+       LEFT JOIN users u ON o.user_id = u.user_id
+       LEFT JOIN guests g ON o.guest_id = g.guest_id
+       WHERE DATE(o.created_at) = $1 
+         AND LOWER(o.order_type) = 'delivery'
+         AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
+       GROUP BY COALESCE(u.postal_code, g.postal_code)
+       ORDER BY delivery_count DESC
+       LIMIT 1`,
+      [todayStr]
+    );
+    const allItemsSoldQuery = await pool.query(
+      `SELECT 
+         oi.item_id,
+         i.item_name,
+         i.type,
+         i.subtype,
+         SUM(oi.quantity) AS total_quantity_sold,
+         AVG(oi.total_price / oi.quantity) AS average_unit_price,
+         MIN(oi.total_price / oi.quantity) AS min_unit_price,
+         MAX(oi.total_price / oi.quantity) AS max_unit_price,
+         SUM(oi.total_price) AS total_item_sales,
+         COUNT(DISTINCT oi.order_id) AS orders_containing_item
+       FROM order_items oi
+       JOIN items i ON oi.item_id = i.item_id
+       JOIN orders o ON oi.order_id = o.order_id
+       WHERE DATE(o.created_at) = $1
+       GROUP BY oi.item_id, i.item_name, i.type, i.subtype
+       ORDER BY total_quantity_sold DESC`,
+      [todayStr]
+    );
 
     const todaySales = parseFloat(totalSalesQuery.rows[0].total_sales);
     const lastWeekSales = parseFloat(totalSalesLastWeek.rows[0].total_sales);
@@ -194,6 +230,8 @@ router.get("/sales-report/today", async (req, res) => {
       sales_by_order_type: byOrderTypeQuery.rows,
       sales_by_order_source: byOrderSourceQuery.rows,
       most_selling_item: mostSellingItemQuery.rows[0] || {},
+      most_delivered_postal_code: mostDeliveredPostalCodeQuery.rows[0] || null,
+      all_items_sold: allItemsSoldQuery.rows,
     });
   } catch (error) {
     console.error("❌ Error generating sales report:", error);
@@ -339,6 +377,56 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
       [date, sourceParam, paymentParam, orderTypeParam]
     );
 
+    let mostDeliveredPostalCodeQuery = { rows: [null] };
+    if (orderTypeParam === null || orderTypeParam.toLowerCase() === 'delivery') {
+      mostDeliveredPostalCodeQuery = await pool.query(
+        `SELECT 
+           COALESCE(u.postal_code, g.postal_code) AS postal_code,
+           COUNT(*) AS delivery_count,
+           SUM(o.total_price) AS total_delivery_sales,
+           COUNT(CASE WHEN o.user_id IS NOT NULL THEN 1 END) AS registered_user_deliveries,
+           COUNT(CASE WHEN o.guest_id IS NOT NULL THEN 1 END) AS guest_deliveries
+         FROM orders o
+         LEFT JOIN users u ON o.user_id = u.user_id
+         LEFT JOIN guests g ON o.guest_id = g.guest_id
+         WHERE DATE(o.created_at) = $1 
+           AND LOWER(o.order_type) = 'delivery'
+           AND ($2::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $2)
+           AND ($3::text IS NULL OR o.payment_type = $3)
+           AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
+         GROUP BY COALESCE(u.postal_code, g.postal_code)
+         ORDER BY delivery_count DESC
+         LIMIT 1`,
+        [date, sourceParam, paymentParam]
+      );
+    }
+
+    // All items sold on the specified date with detailed pricing
+    const allItemsSoldQuery = await pool.query(
+      `SELECT 
+         oi.item_id,
+         i.item_name,
+         i.type,
+         i.subtype,
+         SUM(oi.quantity) AS total_quantity_sold,
+         ROUND(AVG(oi.total_price / oi.quantity), 2) AS average_unit_price,
+         ROUND(MIN(oi.total_price / oi.quantity), 2) AS min_unit_price,
+         ROUND(MAX(oi.total_price / oi.quantity), 2) AS max_unit_price,
+         SUM(oi.total_price) AS total_item_sales,
+         COUNT(DISTINCT oi.order_id) AS orders_containing_item,
+         ROUND((SUM(oi.total_price) / (SELECT COALESCE(SUM(total_price), 1) FROM orders WHERE DATE(created_at) = $1 AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2) AND ($3::text IS NULL OR payment_type = $3) AND ($4::text IS NULL OR order_type = $4)) * 100), 2) AS percentage_of_total_sales
+       FROM order_items oi
+       JOIN items i ON oi.item_id = i.item_id
+       JOIN orders o ON oi.order_id = o.order_id
+       WHERE DATE(o.created_at) = $1
+       AND ($2::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $2)
+       AND ($3::text IS NULL OR o.payment_type = $3)
+       AND ($4::text IS NULL OR o.order_type = $4)
+       GROUP BY oi.item_id, i.item_name, i.type, i.subtype
+       ORDER BY total_quantity_sold DESC`,
+      [date, sourceParam, paymentParam, orderTypeParam]
+    );
+
     const todaySales = parseFloat(totalSalesQuery.rows[0].total_sales);
     const lastWeekSales = parseFloat(totalSalesLastWeek.rows[0].total_sales);
 
@@ -357,6 +445,8 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
       sales_by_order_source: byOrderSourceQuery.rows,
       most_sold_item: mostSoldItemQuery.rows[0] || {},
       most_sold_type: mostSoldTypeQuery.rows[0] || {},
+      most_delivered_postal_code: mostDeliveredPostalCodeQuery.rows[0] || null,
+      all_items_sold: allItemsSoldQuery.rows,
     });
   } catch (error) {
     console.error("❌ Error generating daily sales report:", error);
