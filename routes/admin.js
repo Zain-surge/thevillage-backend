@@ -518,6 +518,14 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
     const fromDate = startOfWeek.toISOString().slice(0, 10);
     const toDate = endOfWeek.toISOString().slice(0, 10);
 
+     // Calculate last week dates for comparison
+    const lastWeekStart = new Date(startOfWeek);
+    lastWeekStart.setDate(startOfWeek.getDate() - 7);
+    const lastWeekEnd = new Date(endOfWeek);
+    lastWeekEnd.setDate(endOfWeek.getDate() - 7);
+    const lastWeekFromDate = lastWeekStart.toISOString().slice(0, 10);
+    const lastWeekToDate = lastWeekEnd.toISOString().slice(0, 10);
+
     const { source, payment, orderType } = req.query;
     const sourceParam = source === 'All' || !source ? null : source;
     const paymentParam = payment === 'All' || !payment ? null : payment;
@@ -532,6 +540,16 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
+    );
+
+    const totalSalesLastWeek = await pool.query(
+      `SELECT COALESCE(SUM(total_price), 0) AS total_sales 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2
+       AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR payment_type = $4)
+    AND ($5::text IS NULL OR order_type = $5)`,
+      [lastWeekFromDate, lastWeekToDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Total orders
@@ -671,6 +689,16 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
+    // Calculate growth metrics
+    const currentWeekSales = parseFloat(totalSales.rows[0].total_sales);
+    const lastWeekSales = parseFloat(totalSalesLastWeek.rows[0].total_sales);
+    const salesIncrease = currentWeekSales - lastWeekSales;
+
+    let growth = 0;
+    if (lastWeekSales > 0) {
+      growth = ((currentWeekSales - lastWeekSales) / lastWeekSales) * 100;
+    }
+
     res.status(200).json({
       period: {
         year: yearNum,
@@ -680,6 +708,8 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
       },
       total_sales_amount: totalSales.rows[0].total_sales,
       total_orders_placed: parseInt(totalOrders.rows[0].total_orders),
+      sales_growth_percentage: parseFloat(growth.toFixed(2)),
+      sales_increase: parseFloat(salesIncrease.toFixed(2)),
       sales_by_payment_type: byPayment.rows,
       sales_by_order_type: byOrderType.rows,
       sales_by_order_source: byOrderSource.rows,
@@ -735,6 +765,13 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
 
     const fromDate = firstDay.toISOString().slice(0, 10);
     const toDate = lastDay.toISOString().slice(0, 10);
+
+    // Calculate last month dates for comparison
+    const lastMonthFirstDay = new Date(yearNum, monthNum - 1, 1);
+    const lastMonthLastDay = new Date(yearNum, monthNum, 0);
+    const lastMonthFromDate = lastMonthFirstDay.toISOString().slice(0, 10);
+    const lastMonthToDate = lastMonthLastDay.toISOString().slice(0, 10);
+
     const { source, payment, orderType } = req.query;
     const sourceParam = source === 'All' || !source ? null : source;
     const paymentParam = payment === 'All' || !payment ? null : payment;
@@ -749,6 +786,17 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
+    );
+
+    // Total sales for last month
+    const totalSalesLastMonth = await pool.query(
+      `SELECT COALESCE(SUM(total_price), 0) AS total_sales 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2
+       AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR payment_type = $4)
+    AND ($5::text IS NULL OR order_type = $5)`,
+      [lastMonthFromDate, lastMonthToDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Total orders
@@ -888,6 +936,16 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
+    // Calculate growth metrics
+    const currentMonthSales = parseFloat(totalSales.rows[0].total_sales);
+    const lastMonthSales = parseFloat(totalSalesLastMonth.rows[0].total_sales);
+    const salesIncrease = currentMonthSales - lastMonthSales;
+
+    let growth = 0;
+    if (lastMonthSales > 0) {
+      growth = ((currentMonthSales - lastMonthSales) / lastMonthSales) * 100;
+    }
+
     const monthNames = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
@@ -902,6 +960,8 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
       },
       total_sales_amount: totalSales.rows[0].total_sales,
       total_orders_placed: parseInt(totalOrders.rows[0].total_orders),
+      sales_growth_percentage: parseFloat(growth.toFixed(2)),
+      sales_increase: parseFloat(salesIncrease.toFixed(2)),
       sales_by_payment_type: byPayment.rows,
       sales_by_order_type: byOrderType.rows,
       sales_by_order_source: byOrderSource.rows,
