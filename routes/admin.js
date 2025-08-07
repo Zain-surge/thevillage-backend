@@ -113,6 +113,12 @@ router.put("/update-shop-timings", async (req, res) => {
 
 router.get("/sales-report/today", async (req, res) => {
   try {
+
+    const { source, payment, orderType } = req.query;
+    const sourceParam = source === 'All' || !source ? null : source;
+    const paymentParam = payment === 'All' || !payment ? null : payment;
+    const orderTypeParam = orderType === 'All' || !orderType ? null : orderType;
+
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
 
@@ -124,23 +130,32 @@ router.get("/sales-report/today", async (req, res) => {
     const totalSalesQuery = await pool.query(
       `SELECT COALESCE(SUM(total_price), 0) AS total_sales 
        FROM orders 
-       WHERE DATE(created_at) = $1`,
-      [todayStr]
+       WHERE DATE(created_at) = $1
+        AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2)
+    AND ($3::text IS NULL OR payment_type = $3)
+    AND ($4::text IS NULL OR order_type = $4)`,
+      [todayStr, sourceParam, paymentParam, orderTypeParam]
     );
     const totalSalesLastWeek = await pool.query(
       `SELECT COALESCE(SUM(total_price), 0) AS total_sales 
        FROM orders 
-       WHERE DATE(created_at) = $1`,
-      [lastWeekStr]
+       WHERE DATE(created_at) = $1
+        AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2)
+    AND ($3::text IS NULL OR payment_type = $3)
+    AND ($4::text IS NULL OR order_type = $4)`,
+      [lastWeekStr, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Sales by payment type
     const byPaymentQuery = await pool.query(
       `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total 
        FROM orders 
-       WHERE DATE(created_at) = $1 
+       WHERE DATE(created_at) = $1
+        AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2)
+    AND ($3::text IS NULL OR payment_type = $3)
+    AND ($4::text IS NULL OR order_type = $4) 
        GROUP BY payment_type`,
-      [todayStr]
+      [todayStr, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Sales by order type
@@ -148,8 +163,11 @@ router.get("/sales-report/today", async (req, res) => {
       `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total 
        FROM orders 
        WHERE DATE(created_at) = $1 
+        AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2)
+    AND ($3::text IS NULL OR payment_type = $3)
+    AND ($4::text IS NULL OR order_type = $4)
        GROUP BY order_type`,
-      [todayStr]
+      [todayStr, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Sales by order source
@@ -157,8 +175,11 @@ router.get("/sales-report/today", async (req, res) => {
       `SELECT COALESCE(order_source, 'Unknown') AS source, COUNT(*) AS count, SUM(total_price) AS total 
        FROM orders 
        WHERE DATE(created_at) = $1 
+        AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2)
+    AND ($3::text IS NULL OR payment_type = $3)
+    AND ($4::text IS NULL OR order_type = $4)
        GROUP BY COALESCE(order_source, 'Unknown')`,
-      [todayStr]
+      [todayStr, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Most selling item
@@ -172,11 +193,15 @@ router.get("/sales-report/today", async (req, res) => {
        JOIN items i ON oi.item_id = i.item_id
        JOIN orders o ON oi.order_id = o.order_id
        WHERE DATE(o.created_at) = $1
+        AND ($2::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $2)
+    AND ($3::text IS NULL OR o.payment_type = $3)
+    AND ($4::text IS NULL OR o.order_type = $4)
        GROUP BY oi.item_id, i.item_name
        ORDER BY quantity_sold DESC
        LIMIT 1`,
-      [todayStr]
+      [todayStr, sourceParam, paymentParam, orderTypeParam]
     );
+    
     const mostDeliveredPostalCodeQuery = await pool.query(
       `SELECT 
          COALESCE(u.postal_code, g.postal_code) AS postal_code,
@@ -188,10 +213,11 @@ router.get("/sales-report/today", async (req, res) => {
        WHERE DATE(o.created_at) = $1 
          AND LOWER(o.order_type) = 'delivery'
          AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
+
        GROUP BY COALESCE(u.postal_code, g.postal_code)
        ORDER BY delivery_count DESC
        LIMIT 1`,
-      [todayStr]
+      [todayStr, sourceParam, paymentParam, orderTypeParam]
     );
     const allItemsSoldQuery = await pool.query(
       `SELECT 
@@ -211,7 +237,7 @@ router.get("/sales-report/today", async (req, res) => {
        WHERE DATE(o.created_at) = $1
        GROUP BY oi.item_id, i.item_name, i.type, i.subtype
        ORDER BY total_quantity_sold DESC`,
-      [todayStr]
+      [todayStr, sourceParam, paymentParam, orderTypeParam]
     );
 
     const todaySales = parseFloat(totalSalesQuery.rows[0].total_sales);
