@@ -462,6 +462,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
 
     const todaySales = parseFloat(totalSalesQuery.rows[0].total_sales);
     const lastWeekSales = parseFloat(totalSalesLastWeek.rows[0].total_sales);
+    const salesincrease=todaySales-lastWeekSales;
 
     let growth = 0;
     if (lastWeekSales > 0) {
@@ -473,6 +474,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
       total_sales_amount: totalSalesQuery.rows[0].total_sales,
       total_orders_placed: parseInt(totalOrdersQuery.rows[0].total_orders),
       sales_growth_percentage: parseFloat(growth.toFixed(2)),
+      sales_increase:parseFloat(salesincrease.toFixed(2)),
       sales_by_payment_type: byPaymentQuery.rows,
       sales_by_order_type: byOrderTypeQuery.rows,
       sales_by_order_source: byOrderSourceQuery.rows,
