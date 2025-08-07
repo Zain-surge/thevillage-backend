@@ -201,7 +201,7 @@ router.get("/sales-report/today", async (req, res) => {
        LIMIT 1`,
       [todayStr, sourceParam, paymentParam, orderTypeParam]
     );
-    
+
     const mostDeliveredPostalCodeQuery = await pool.query(
       `SELECT 
          COALESCE(u.postal_code, g.postal_code) AS postal_code,
@@ -217,7 +217,7 @@ router.get("/sales-report/today", async (req, res) => {
        GROUP BY COALESCE(u.postal_code, g.postal_code)
        ORDER BY delivery_count DESC
        LIMIT 1`,
-      [todayStr, sourceParam, paymentParam, orderTypeParam]
+      [todayStr]
     );
     const allItemsSoldQuery = await pool.query(
       `SELECT 
@@ -237,7 +237,7 @@ router.get("/sales-report/today", async (req, res) => {
        WHERE DATE(o.created_at) = $1
        GROUP BY oi.item_id, i.item_name, i.type, i.subtype
        ORDER BY total_quantity_sold DESC`,
-      [todayStr, sourceParam, paymentParam, orderTypeParam]
+      [todayStr]
     );
 
     const todaySales = parseFloat(totalSalesQuery.rows[0].total_sales);
