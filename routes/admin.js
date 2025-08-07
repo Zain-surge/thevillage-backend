@@ -216,6 +216,7 @@ router.get("/sales-report/today", async (req, res) => {
 
     const todaySales = parseFloat(totalSalesQuery.rows[0].total_sales);
     const lastWeekSales = parseFloat(totalSalesLastWeek.rows[0].total_sales);
+    const salesincrease=todaySales-lastWeekSales;
 
     let growth = 0;
     if (lastWeekSales > 0) {
@@ -226,6 +227,7 @@ router.get("/sales-report/today", async (req, res) => {
       date: todayStr,
       total_sales: totalSalesQuery.rows[0].total_sales,
       sales_growth_percentage: parseFloat(growth.toFixed(2)),
+      sales_increase:parseFloat(salesincrease.toFixed(2)),
       sales_by_payment_type: byPaymentQuery.rows,
       sales_by_order_type: byOrderTypeQuery.rows,
       sales_by_order_source: byOrderSourceQuery.rows,
@@ -287,7 +289,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
        AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2)
     AND ($3::text IS NULL OR payment_type = $3)
     AND ($4::text IS NULL OR order_type = $4)`,
-      [date, sourceParam, paymentParam, orderTypeParam]
+      [lastWeekStr, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Total orders placed
@@ -496,7 +498,7 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
        AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Total orders
@@ -507,7 +509,7 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
        AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Sales by payment type
@@ -519,7 +521,7 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
        GROUP BY payment_type`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Sales by order type
@@ -531,7 +533,7 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
        GROUP BY order_type`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Sales by order source
@@ -543,7 +545,7 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
        GROUP BY COALESCE(order_source, 'Unknown')`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Most sold item
@@ -563,7 +565,7 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
        GROUP BY oi.item_id, i.item_name
        ORDER BY quantity_sold DESC
        LIMIT 1`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Most sold type
@@ -582,14 +584,14 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
        GROUP BY i.type
        ORDER BY quantity_sold DESC
        LIMIT 1`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Most delivered postal code (only for delivery orders and when no orderType filter or orderType is 'delivery')
-let mostDeliveredPostalCodeQuery = { rows: [null] };
-if (orderTypeParam === null || orderTypeParam.toLowerCase() === 'delivery') {
-  mostDeliveredPostalCodeQuery = await pool.query(
-    `SELECT 
+    let mostDeliveredPostalCodeQuery = { rows: [null] };
+    if (orderTypeParam === null || orderTypeParam.toLowerCase() === 'delivery') {
+      mostDeliveredPostalCodeQuery = await pool.query(
+        `SELECT 
        COALESCE(u.postal_code, g.postal_code) AS postal_code,
        COUNT(*) AS delivery_count,
        SUM(o.total_price) AS total_delivery_sales,
@@ -606,13 +608,13 @@ if (orderTypeParam === null || orderTypeParam.toLowerCase() === 'delivery') {
      GROUP BY COALESCE(u.postal_code, g.postal_code)
      ORDER BY delivery_count DESC
      LIMIT 1`,
-    [fromDate, toDate, sourceParam, paymentParam]
-  );
-}
+        [fromDate, toDate, sourceParam, paymentParam]
+      );
+    }
 
-// All items sold in the week with detailed pricing
-const allItemsSoldQuery = await pool.query(
-  `SELECT 
+    // All items sold in the week with detailed pricing
+    const allItemsSoldQuery = await pool.query(
+      `SELECT 
      oi.item_id,
      i.item_name,
      i.type,
@@ -633,8 +635,8 @@ const allItemsSoldQuery = await pool.query(
    AND ($5::text IS NULL OR o.order_type = $5)
    GROUP BY oi.item_id, i.item_name, i.type, i.subtype
    ORDER BY total_quantity_sold DESC`,
-  [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
-);
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
+    );
 
     res.status(200).json({
       period: {
@@ -651,7 +653,7 @@ const allItemsSoldQuery = await pool.query(
       most_sold_item: mostSoldItem.rows[0] || {},
       most_sold_type: mostSoldType.rows[0] || {},
       most_delivered_postal_code: mostDeliveredPostalCodeQuery.rows[0] || null,
-  all_items_sold: allItemsSoldQuery.rows,
+      all_items_sold: allItemsSoldQuery.rows,
     });
   } catch (error) {
     console.error("❌ Error generating weekly sales report:", error);
@@ -713,7 +715,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
        AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Total orders
@@ -724,7 +726,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
        AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Sales by payment type
@@ -736,7 +738,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
        GROUP BY payment_type`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Sales by order type
@@ -748,7 +750,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
        GROUP BY order_type`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Sales by order source
@@ -760,7 +762,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
        GROUP BY COALESCE(order_source, 'Unknown')`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Most sold item
@@ -780,7 +782,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
        GROUP BY oi.item_id, i.item_name
        ORDER BY quantity_sold DESC
        LIMIT 1`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Most sold type
@@ -799,14 +801,14 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
        GROUP BY i.type
        ORDER BY quantity_sold DESC
        LIMIT 1`,
-      [fromDate, toDate,sourceParam, paymentParam, orderTypeParam]
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
     );
 
     // Most delivered postal code (only for delivery orders and when no orderType filter or orderType is 'delivery')
-let mostDeliveredPostalCodeQuery = { rows: [null] };
-if (orderTypeParam === null || orderTypeParam.toLowerCase() === 'delivery') {
-  mostDeliveredPostalCodeQuery = await pool.query(
-    `SELECT 
+    let mostDeliveredPostalCodeQuery = { rows: [null] };
+    if (orderTypeParam === null || orderTypeParam.toLowerCase() === 'delivery') {
+      mostDeliveredPostalCodeQuery = await pool.query(
+        `SELECT 
        COALESCE(u.postal_code, g.postal_code) AS postal_code,
        COUNT(*) AS delivery_count,
        SUM(o.total_price) AS total_delivery_sales,
@@ -823,13 +825,13 @@ if (orderTypeParam === null || orderTypeParam.toLowerCase() === 'delivery') {
      GROUP BY COALESCE(u.postal_code, g.postal_code)
      ORDER BY delivery_count DESC
      LIMIT 1`,
-    [fromDate, toDate, sourceParam, paymentParam]
-  );
-}
+        [fromDate, toDate, sourceParam, paymentParam]
+      );
+    }
 
-// All items sold in the month with detailed pricing
-const allItemsSoldQuery = await pool.query(
-  `SELECT 
+    // All items sold in the month with detailed pricing
+    const allItemsSoldQuery = await pool.query(
+      `SELECT 
      oi.item_id,
      i.item_name,
      i.type,
@@ -850,8 +852,8 @@ const allItemsSoldQuery = await pool.query(
    AND ($5::text IS NULL OR o.order_type = $5)
    GROUP BY oi.item_id, i.item_name, i.type, i.subtype
    ORDER BY total_quantity_sold DESC`,
-  [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
-);
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam]
+    );
 
     const monthNames = [
       'January', 'February', 'March', 'April', 'May', 'June',
@@ -873,7 +875,7 @@ const allItemsSoldQuery = await pool.query(
       most_sold_item: mostSoldItem.rows[0] || {},
       most_sold_type: mostSoldType.rows[0] || {},
       most_delivered_postal_code: mostDeliveredPostalCodeQuery.rows[0] || null,
-  all_items_sold: allItemsSoldQuery.rows,
+      all_items_sold: allItemsSoldQuery.rows,
     });
   } catch (error) {
     console.error("❌ Error generating monthly sales report:", error);
@@ -886,7 +888,7 @@ router.get("/driver-report/:date", async (req, res) => {
   try {
     console.log("ENTERED")
     const { date } = req.params;
-    console.log("DRIVER REPORT DATE:",date)
+    console.log("DRIVER REPORT DATE:", date)
     // Validate date format (YYYY-MM-DD)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
@@ -937,7 +939,7 @@ router.get("/driver-report/:date", async (req, res) => {
     );
 
     res.status(200).json({
-    
+
       date,
       driver_order_summary: driverSummaryQuery.rows,
       driver_delivery_locations: driverDeliveryLocationsQuery.rows,
