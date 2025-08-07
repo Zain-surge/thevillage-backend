@@ -213,11 +213,13 @@ router.get("/sales-report/today", async (req, res) => {
        WHERE DATE(o.created_at) = $1 
          AND LOWER(o.order_type) = 'delivery'
          AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
-
+      AND ($2::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $2)
+    AND ($3::text IS NULL OR o.payment_type = $3)
+    AND ($4::text IS NULL OR o.order_type = $4)
        GROUP BY COALESCE(u.postal_code, g.postal_code)
        ORDER BY delivery_count DESC
        LIMIT 1`,
-      [todayStr]
+      [todayStr, sourceParam, paymentParam, orderTypeParam]
     );
     const allItemsSoldQuery = await pool.query(
       `SELECT 
@@ -235,9 +237,12 @@ router.get("/sales-report/today", async (req, res) => {
        JOIN items i ON oi.item_id = i.item_id
        JOIN orders o ON oi.order_id = o.order_id
        WHERE DATE(o.created_at) = $1
+       AND ($2::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $2)
+        AND ($3::text IS NULL OR o.payment_type = $3)
+        AND ($4::text IS NULL OR o.order_type = $4)
        GROUP BY oi.item_id, i.item_name, i.type, i.subtype
        ORDER BY total_quantity_sold DESC`,
-      [todayStr]
+      [todayStr, sourceParam, paymentParam, orderTypeParam]
     );
 
     const todaySales = parseFloat(totalSalesQuery.rows[0].total_sales);
