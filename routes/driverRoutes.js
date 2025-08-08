@@ -115,6 +115,7 @@ router.get("/orders-with-driver/:date", async (req, res) => {
         d.phone_number AS driver_phone,
         o.total_price,
         o.status,
+        TO_CHAR(o.created_at, 'HH24:MI:SS') AS order_time,
         json_agg(
           json_build_object(
             'item_name', i.item_name,
@@ -133,7 +134,7 @@ router.get("/orders-with-driver/:date", async (req, res) => {
         AND DATE(o.created_at) = $1
       GROUP BY 
         o.order_id, customer_name, street_address, city, county, postal_code,
-        d.id, d.name, d.phone_number, o.total_price, o.status
+        d.id, d.name, d.phone_number, o.total_price, o.status, order_time
       ORDER BY o.created_at DESC;
     `;
 
@@ -145,6 +146,7 @@ router.get("/orders-with-driver/:date", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch orders with driver" });
   }
 });
+
 
 
 export default router;
