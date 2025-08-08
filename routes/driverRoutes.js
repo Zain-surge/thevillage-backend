@@ -97,4 +97,54 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// Get orders with driver details for a specific date
+router.get("/orders-with-driver/:date", async (req, res) => {
+  const { date } = req.params;
+
+  try {
+    const query = `
+      SELECT 
+        o.order_id,
+        COALESCE(u.name, g.name) AS customer_name,
+        COALESCE(u.street_address, g.street_address) AS street_address,
+        COALESCE(u.city, g.city) AS city,
+        COALESCE(u.county, g.county) AS county,
+        COALESCE(u.postal_code, g.postal_code) AS postal_code,
+        d.id AS driver_id,
+        d.name AS driver_name,
+        d.phone_number AS driver_phone,
+        o.total_price,
+        o.status,
+        json_agg(
+          json_build_object(
+            'item_name', i.item_name,
+            'quantity', oi.quantity,
+            'total_price', oi.total_price,
+            'description', oi.description
+          )
+        ) AS items
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.user_id
+      LEFT JOIN guests g ON o.guest_id = g.guest_id
+      LEFT JOIN drivers d ON o.driver_id = d.id
+      LEFT JOIN order_items oi ON o.order_id = oi.order_id
+      LEFT JOIN items i ON oi.item_id = i.item_id
+      WHERE o.driver_id IS NOT NULL
+        AND DATE(o.created_at) = $1
+      GROUP BY 
+        o.order_id, customer_name, street_address, city, county, postal_code,
+        d.id, d.name, d.phone_number, o.total_price, o.status
+      ORDER BY o.created_at DESC;
+    `;
+
+    const result = await pool.query(query, [date]);
+
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("❌ Error fetching orders with driver:", error);
+    res.status(500).json({ error: "Failed to fetch orders with driver" });
+  }
+});
+
+
 export default router;
