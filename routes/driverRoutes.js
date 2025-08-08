@@ -103,39 +103,46 @@ router.get("/orders-with-driver/:date", async (req, res) => {
 
   try {
     const query = `
-      SELECT 
-        o.order_id,
-        COALESCE(u.name, g.name) AS customer_name,
-        COALESCE(u.street_address, g.street_address) AS street_address,
-        COALESCE(u.city, g.city) AS city,
-        COALESCE(u.county, g.county) AS county,
-        COALESCE(u.postal_code, g.postal_code) AS postal_code,
-        d.id AS driver_id,
-        d.name AS driver_name,
-        d.phone_number AS driver_phone,
-        o.total_price,
-        o.status,
-        TO_CHAR(o.created_at, 'HH24:MI:SS') AS order_time,
-        json_agg(
-          json_build_object(
-            'item_name', i.item_name,
-            'quantity', oi.quantity,
-            'total_price', oi.total_price,
-            'description', oi.description
-          )
-        ) AS items
-      FROM orders o
-      LEFT JOIN users u ON o.user_id = u.user_id
-      LEFT JOIN guests g ON o.guest_id = g.guest_id
-      LEFT JOIN drivers d ON o.driver_id = d.id
-      LEFT JOIN order_items oi ON o.order_id = oi.order_id
-      LEFT JOIN items i ON oi.item_id = i.item_id
-      WHERE o.driver_id IS NOT NULL
-        AND DATE(o.created_at) = $1
-      GROUP BY 
-        o.order_id, customer_name, street_address, city, county, postal_code,
-        d.id, d.name, d.phone_number, o.total_price, o.status, order_time
-      ORDER BY o.created_at DESC;
+     SELECT 
+  o.order_id,
+  COALESCE(u.name, g.name) AS customer_name,
+  COALESCE(u.street_address, g.street_address) AS customer_street_address,
+  COALESCE(u.city, g.city) AS customer_city,
+  COALESCE(u.county, g.county) AS customer_county,
+  COALESCE(u.postal_code, g.postal_code) AS customer_postal_code,
+  d.id AS driver_id,
+  d.name AS driver_name,
+  d.phone_number AS driver_phone,
+  o.total_price,
+  o.status,
+  TO_CHAR(o.created_at, 'HH24:MI:SS') AS order_time,
+  json_agg(
+    json_build_object(
+      'item_name', i.item_name,
+      'quantity', oi.quantity,
+      'total_price', oi.total_price,
+      'description', oi.description
+    )
+  ) AS items
+FROM orders o
+LEFT JOIN users u ON o.user_id = u.user_id
+LEFT JOIN guests g ON o.guest_id = g.guest_id
+LEFT JOIN drivers d ON o.driver_id = d.id
+LEFT JOIN order_items oi ON o.order_id = oi.order_id
+LEFT JOIN items i ON oi.item_id = i.item_id
+WHERE o.driver_id IS NOT NULL
+  AND DATE(o.created_at) = $1
+GROUP BY 
+  o.order_id,
+  customer_name,
+  customer_street_address,
+  customer_city,
+  customer_county,
+  customer_postal_code,
+  d.id, d.name, d.phone_number,
+  o.total_price, o.status, order_time
+ORDER BY o.created_at DESC;
+
     `;
 
     const result = await pool.query(query, [date]);
