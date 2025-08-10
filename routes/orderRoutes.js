@@ -584,5 +584,70 @@ router.get("/track/:order_id", async (req, res) => {
   }
 });
 
+// Add this new route to your existing orders router file
+
+router.post("/cancel", async (req, res) => {
+  const { order_id } = req.body;
+
+  if (!order_id) {
+    return res.status(400).json({ error: "Order ID is required" });
+  }
+
+  try {
+    // First, check if the order exists and get its creation time
+    const orderCheckResult = await pool.query(
+      "SELECT order_id, status, created_at FROM Orders WHERE order_id = $1",
+      [order_id]
+    );
+
+    if (orderCheckResult.rowCount === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const order = orderCheckResult.rows[0];
+
+    // Check if order is already cancelled or completed
+    if (order.status === 'cancelled') {
+      return res.status(400).json({ error: "Order is already cancelled" });
+    }
+
+    if (order.status === 'blue') {
+      return res.status(400).json({ error: "Cannot cancel a completed order" });
+    }
+
+    // Check if order is within 10-minute cancellation window
+    const orderTime = new Date(order.created_at);
+    const currentTime = new Date();
+    const timeDifference = (currentTime - orderTime) / (1000 * 60); // difference in minutes
+
+    if (timeDifference > 10) {
+      return res.status(400).json({ 
+        error: "Cancellation period expired. Orders can only be cancelled within 10 minutes of placement." 
+      });
+    }
+
+    // Update order status to cancelled
+    const updateResult = await pool.query(
+      "UPDATE Orders SET status = 'cancelled' WHERE order_id = $1 RETURNING order_id, status",
+      [order_id]
+    );
+
+    if (updateResult.rowCount === 0) {
+      return res.status(500).json({ error: "Failed to cancel order" });
+    }
+
+    console.log(`✅ Order ${order_id} has been cancelled successfully`);
+
+    res.status(200).json({ 
+      message: "Order cancelled successfully",
+      order_id: order_id,
+      status: "cancelled"
+    });
+
+  } catch (error) {
+    console.error("❌ Error cancelling order:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 export default router;
