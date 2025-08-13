@@ -167,13 +167,13 @@ router.post("/update-status", async (req, res) => {
               ? `🚗 Your Order #${order_id} is On Its Way!`
               : `🎉 Your Order #${order_id} is Ready for Pickup!`;
 
-          const itemsList = orderData.items
-            .map(
-              (item) =>
-                `• ${item.quantity}x ${item.item_name} - $${item.item_total_price.toFixed(2)}
-                  ${item.item_description ? `  (${item.item_description})` : ''}`
-            )
-            .join('\n');
+          // const itemsList = orderData.items
+          //   .map(
+          //     (item) =>
+          //       `• ${item.quantity}x ${item.item_name} - $${item.total_price.toFixed(2)}
+          //         ${item.item_description ? `  (${item.item_description})` : ''}`
+          //   )
+          //   .join('\n');
 
           const deliveryAddress = order_type === "delivery" 
             ? `${orderData.street_address}, ${orderData.city}, ${orderData.county} ${orderData.postal_code}` 
