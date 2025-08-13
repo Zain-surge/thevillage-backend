@@ -524,7 +524,9 @@ router.get("/track/:order_id", async (req, res) => {
       LEFT JOIN Drivers d ON o.driver_id = d.id
       JOIN Order_Items oi ON o.order_id = oi.order_id
       JOIN Items i ON oi.item_id = i.item_id
-      WHERE o.order_id = $1
+      WHERE COALESCE(u.phone_number, g.phone_number) = $1
+  AND o.status != 'blue'
+  AND DATE(o.created_at) = CURRENT_DATE;
       `,
       [order_id]
     );
@@ -550,12 +552,12 @@ router.get("/track/:order_id", async (req, res) => {
 
       driver: rows[0].driver_id
         ? {
-            driver_id: rows[0].driver_id,
-            name: rows[0].driver_name,
-            phone: rows[0].driver_phone,
-            email: rows[0].driver_email,
-            is_active: rows[0].driver_is_active,
-          }
+          driver_id: rows[0].driver_id,
+          name: rows[0].driver_name,
+          phone: rows[0].driver_phone,
+          email: rows[0].driver_email,
+          is_active: rows[0].driver_is_active,
+        }
         : null,
 
       customer: {
@@ -621,8 +623,8 @@ router.post("/cancel", async (req, res) => {
     const timeDifference = (currentTime - orderTime) / (1000 * 60); // difference in minutes
 
     if (timeDifference > 10) {
-      return res.status(400).json({ 
-        error: "Cancellation period expired. Orders can only be cancelled within 10 minutes of placement." 
+      return res.status(400).json({
+        error: "Cancellation period expired. Orders can only be cancelled within 10 minutes of placement."
       });
     }
 
@@ -638,7 +640,7 @@ router.post("/cancel", async (req, res) => {
 
     console.log(`✅ Order ${order_id} has been cancelled successfully`);
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: "Order cancelled successfully",
       order_id: order_id,
       status: "cancelled"
