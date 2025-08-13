@@ -86,10 +86,10 @@ router.post("/update-status", async (req, res) => {
           o.order_source,
           
           -- Driver details
-          d.id AS driver_id,
-          d.name AS driver_name,
-          d.phone_number AS driver_phone,
-          d.email AS driver_email,
+          d.id AS id,
+          d.name AS name,
+          d.phone_number AS phone_number,
+          d.email AS email,
           
           -- Customer details
           COALESCE(u.name, g.name) AS customer_name,
@@ -102,10 +102,10 @@ router.post("/update-status", async (req, res) => {
           
           -- Items
           i.item_name,
-          i.type AS item_type,
+          i.type AS type,
           oi.quantity,
-          oi.description AS item_description,
-          oi.total_price AS item_total_price
+          oi.description AS description,
+          oi.total_price AS total_price
         FROM Orders o
         LEFT JOIN Users u ON o.user_id = u.user_id
         LEFT JOIN Guests g ON o.guest_id = g.guest_id
@@ -154,10 +154,10 @@ router.post("/update-status", async (req, res) => {
           orderRows.forEach((row) => {
             orderData.items.push({
               item_name: row.item_name,
-              item_type: row.item_type,
+              item_type: row.type,
               quantity: row.quantity,
-              item_description: row.item_description,
-              item_total_price: row.item_total_price,
+              item_description: row.description,
+              item_total_price: row.total_price,
             });
           });
 
