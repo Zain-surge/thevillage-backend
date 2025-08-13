@@ -186,15 +186,15 @@ router.post("/update-status", async (req, res) => {
     <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+        .header { background-color: #808080; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
         .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
         .order-details { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
         .items-list { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
-        .driver-info { background-color: #e8f5e8; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #4CAF50; }
+        .driver-info { background-color: #e8f5e8; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #808080; }
         .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
-        .highlight { color: #4CAF50; font-weight: bold; }
-        .price { font-weight: bold; color: #2e7d32; }
-        h3 { margin-top: 0; color: #4CAF50; }
+        .highlight { color: #808080; font-weight: bold; }
+        .price { font-weight: bold; color: #808080; }
+        h3 { margin-top: 0; color: #808080; }
     </style>
 </head>
 <body>
