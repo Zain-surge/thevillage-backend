@@ -46,7 +46,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
-
 router.post("/update-status", async (req, res) => {
   const { order_id, status, driver_id } = req.body;
 
@@ -71,44 +70,223 @@ router.post("/update-status", async (req, res) => {
 
     // Only proceed with email if status is green
     if (status === "green" && updatedDriverId) {
-      let emailResult;
+      // Get complete order details for email
+      const orderDetailsResult = await pool.query(
+        `
+        SELECT
+          o.order_id,
+          o.payment_type,
+          o.transaction_id,
+          o.order_type,
+          o.total_price AS order_total_price,
+          o.extra_notes AS order_extra_notes,
+          o.status,
+          o.created_at,
+          o.change_due,
+          o.order_source,
+          
+          -- Driver details
+          d.id AS driver_id,
+          d.name AS driver_name,
+          d.phone_number AS driver_phone,
+          d.email AS driver_email,
+          
+          -- Customer details
+          COALESCE(u.name, g.name) AS customer_name,
+          COALESCE(u.email, g.email) AS customer_email,
+          COALESCE(u.phone_number, g.phone_number) AS phone_number,
+          COALESCE(u.street_address, g.street_address) AS street_address,
+          COALESCE(u.city, g.city) AS city,
+          COALESCE(u.county, g.county) AS county,
+          COALESCE(u.postal_code, g.postal_code) AS postal_code,
+          
+          -- Items
+          i.item_name,
+          i.type AS item_type,
+          oi.quantity,
+          oi.description AS item_description,
+          oi.total_price AS item_total_price
+        FROM Orders o
+        LEFT JOIN Users u ON o.user_id = u.user_id
+        LEFT JOIN Guests g ON o.guest_id = g.guest_id
+        LEFT JOIN Drivers d ON o.driver_id = d.id
+        JOIN Order_Items oi ON o.order_id = oi.order_id
+        JOIN Items i ON oi.item_id = i.item_id
+        WHERE o.order_id = $1
+        `,
+        [order_id]
+      );
 
-      if (user_id) {
-        emailResult = await pool.query(
-          "SELECT email FROM Users WHERE user_id = $1",
-          [user_id]
-        );
-      } else if (guest_id) {
-        emailResult = await pool.query(
-          "SELECT email FROM Guests WHERE guest_id = $1",
-          [guest_id]
-        );
-      }
+      const orderRows = orderDetailsResult.rows;
 
-      const customer_email = emailResult?.rows?.[0]?.email;
+      if (orderRows.length > 0) {
+        const customer_email = orderRows[0].customer_email;
 
-      if (customer_email) {
-        // Use your preferred email sending method (e.g., Nodemailer)
-        const subject =
-          order_type === "delivery"
-            ? "Your order is on its way!"
-            : "Your order is ready for pickup!";
-        const message =
-          order_type === "delivery"
-            ? "Hi! Your order is now on its way. 🍕🚗"
-            : "Hi! Your order is ready for pickup. 🍕🎉";
-        await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: customer_email,
-          subject,
-          message,
-        });
+        if (customer_email) {
+          // Build order details for email
+          const orderData = {
+            order_id: orderRows[0].order_id,
+            payment_type: orderRows[0].payment_type,
+            transaction_id: orderRows[0].transaction_id,
+            order_type: orderRows[0].order_type,
+            total_price: orderRows[0].order_total_price,
+            extra_notes: orderRows[0].order_extra_notes,
+            status: orderRows[0].status,
+            created_at: orderRows[0].created_at,
+            change_due: orderRows[0].change_due,
+            order_source: orderRows[0].order_source,
+            customer_name: orderRows[0].customer_name,
+            customer_email: orderRows[0].customer_email,
+            phone_number: orderRows[0].phone_number,
+            street_address: orderRows[0].street_address,
+            city: orderRows[0].city,
+            county: orderRows[0].county,
+            postal_code: orderRows[0].postal_code,
+            driver: {
+              name: orderRows[0].driver_name,
+              phone: orderRows[0].driver_phone,
+              email: orderRows[0].driver_email,
+            },
+            items: []
+          };
 
-        console.log("Email receipt sent to:", customer_email);
+          // Group items
+          orderRows.forEach((row) => {
+            orderData.items.push({
+              item_name: row.item_name,
+              item_type: row.item_type,
+              quantity: row.quantity,
+              item_description: row.item_description,
+              item_total_price: row.item_total_price,
+            });
+          });
+
+          // Create detailed email content
+          const subject =
+            order_type === "delivery"
+              ? `🚗 Your Order #${order_id} is On Its Way!`
+              : `🎉 Your Order #${order_id} is Ready for Pickup!`;
+
+          const itemsList = orderData.items
+            .map(
+              (item) =>
+                `• ${item.quantity}x ${item.item_name} - $${item.item_total_price.toFixed(2)}
+                  ${item.item_description ? `  (${item.item_description})` : ''}`
+            )
+            .join('\n');
+
+          const deliveryAddress = order_type === "delivery" 
+            ? `${orderData.street_address}, ${orderData.city}, ${orderData.county} ${orderData.postal_code}` 
+            : '';
+
+          const emailBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+        .order-details { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
+        .items-list { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
+        .driver-info { background-color: #e8f5e8; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #4CAF50; }
+        .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
+        .highlight { color: #4CAF50; font-weight: bold; }
+        .price { font-weight: bold; color: #2e7d32; }
+        h3 { margin-top: 0; color: #4CAF50; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>${order_type === "delivery" ? "🚗 Your Order is On Its Way!" : "🎉 Your Order is Ready!"}</h1>
+            <p>Order #${orderData.order_id}</p>
+        </div>
+        
+        <div class="content">
+            <p>Hi ${orderData.customer_name || 'Valued Customer'}!</p>
+            <p>${
+              order_type === "delivery"
+                ? `Great news! Your delicious order is now on its way to you. Our driver will be there soon! 🍕🚗`
+                : `Your order is ready and waiting for you! Come pick it up whenever you're ready. 🍕🎉`
+            }</p>
+
+            <div class="order-details">
+                <h3>📋 Order Details</h3>
+                <p><strong>Order ID:</strong> #${orderData.order_id}</p>
+                <p><strong>Order Type:</strong> <span class="highlight">${order_type.charAt(0).toUpperCase() + order_type.slice(1)}</span></p>
+                <p><strong>Payment Method:</strong> ${orderData.payment_type}</p>
+                <p><strong>Order Time:</strong> ${new Date(orderData.created_at).toLocaleString()}</p>
+                ${orderData.transaction_id ? `<p><strong>Transaction ID:</strong> ${orderData.transaction_id}</p>` : ''}
+                ${orderData.change_due > 0 ? `<p><strong>Change Due:</strong> <span class="price">$${orderData.change_due.toFixed(2)}</span></p>` : ''}
+            </div>
+
+            ${order_type === "delivery" ? `
+            <div class="order-details">
+                <h3>📍 Delivery Address</h3>
+                <p>${deliveryAddress}</p>
+                <p><strong>Phone:</strong> ${orderData.phone_number}</p>
+            </div>
+            ` : ''}
+
+            <div class="items-list">
+                <h3>🍽️ Your Order</h3>
+                ${orderData.items.map(item => `
+                    <div style="border-bottom: 1px solid #eee; padding: 8px 0;">
+                        <strong>${item.quantity}x ${item.item_name}</strong> - <span class="price">$${item.item_total_price.toFixed(2)}</span>
+                        ${item.item_description ? `<br><small style="color: #666;">${item.item_description}</small>` : ''}
+                    </div>
+                `).join('')}
+                <div style="padding: 10px 0; border-top: 2px solid #4CAF50; margin-top: 10px;">
+                    <strong>Total: <span class="price">$${orderData.total_price.toFixed(2)}</span></strong>
+                </div>
+            </div>
+
+            ${orderData.extra_notes ? `
+            <div class="order-details">
+                <h3>📝 Special Notes</h3>
+                <p>${orderData.extra_notes}</p>
+            </div>
+            ` : ''}
+
+            ${orderData.driver.name ? `
+            <div class="driver-info">
+                <h3>👨‍🚀 Your Driver</h3>
+                <p><strong>Name:</strong> ${orderData.driver.name}</p>
+                <p><strong>Phone:</strong> ${orderData.driver.phone}</p>
+                <p><em>Feel free to contact your driver if needed!</em></p>
+            </div>
+            ` : ''}
+
+            <p>Thank you for choosing us! We hope you enjoy your meal! 😊</p>
+        </div>
+        
+        <div class="footer">
+            <p>Questions? Contact us at ${process.env.EMAIL_USER}</p>
+            <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>
+          `;
+
+          // Send detailed email
+          await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: customer_email,
+            subject: subject,
+            html: emailBody,
+          });
+
+          console.log(`✅ Detailed order email sent to: ${customer_email} for Order #${order_id}`);
+        } else {
+          console.log(`⚠️ No email found for Order #${order_id}`);
+        }
       }
     }
 
-    res.status(200).json({ message: "Order status updated" });
+    res.status(200).json({ message: "Order status updated successfully" });
   } catch (error) {
     console.error("❌ Error updating status:", error);
     res.status(500).json({ message: "Internal server error" });
