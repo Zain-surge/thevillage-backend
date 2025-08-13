@@ -234,12 +234,12 @@ router.post("/update-status", async (req, res) => {
                 <h3>🍽️ Your Order</h3>
                 ${orderData.items.map(item => `
                     <div style="border-bottom: 1px solid #eee; padding: 8px 0;">
-                        <strong>${item.quantity}x ${item.item_name}</strong> - <span class="price">$${item.item_total_price.toFixed(2)}</span>
+                        <strong>${item.quantity}x ${item.item_name}</strong> - <span class="price">$${item.item_total_price}</span>
                         ${item.item_description ? `<br><small style="color: #666;">${item.item_description}</small>` : ''}
                     </div>
                 `).join('')}
                 <div style="padding: 10px 0; border-top: 2px solid #4CAF50; margin-top: 10px;">
-                    <strong>Total: <span class="price">$${orderData.total_price.toFixed(2)}</span></strong>
+                    <strong>Total: <span class="price">$${orderData.total_price}</span></strong>
                 </div>
             </div>
 
