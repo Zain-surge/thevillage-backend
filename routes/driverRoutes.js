@@ -7,6 +7,11 @@ const router = express.Router();
 router.post("/create", async (req, res) => {
   const { name, email, username, password, phone_number } = req.body;
 
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
   if (!name || !email || !username || !password) {
     return res.status(400).json({ error: "Missing required fields" });
   }
@@ -31,6 +36,11 @@ router.post("/create", async (req, res) => {
 router.put("/deactivate/:username", async (req, res) => {
   const { username } = req.params;
 
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
   try {
     const result = await pool.query(
       `UPDATE drivers SET is_active = FALSE WHERE username = $1 RETURNING *`,
@@ -54,6 +64,11 @@ router.put("/deactivate/:username", async (req, res) => {
 // Login driver
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
+
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
 
   if (!username || !password) {
     return res
@@ -100,6 +115,11 @@ router.post("/login", async (req, res) => {
 // Get orders with driver details for a specific date
 router.get("/orders-with-driver/:date", async (req, res) => {
   const { date } = req.params;
+
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
 
   try {
     const query = `

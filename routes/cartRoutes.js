@@ -7,23 +7,29 @@ const router = express.Router();
 router.post("/saveCart", async (req, res) => {
   const { userId, cartItems } = req.body;
 
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
+
   try {
     await pool.query("BEGIN");
 
-    await pool.query("DELETE FROM Cart WHERE user_id = $1", [userId]);
+    await pool.query("DELETE FROM Cart WHERE user_id = $1 AND brand_name = $2", [userId,clientId]);
 
     // Insert into Cart table
     const cartResult = await pool.query(
-      "INSERT INTO Cart (user_id) VALUES ($1) RETURNING cart_id",
-      [userId]
+      "INSERT INTO Cart (user_id,brand_name) VALUES ($1,$2) RETURNING cart_id",
+      [userId,clientId]
     );
     const cartId = cartResult.rows[0].cart_id;
 
     // Insert into Cart_Items table
     for (const item of cartItems) {
       await pool.query(
-        "INSERT INTO Cart_Items (cart_id, item_id, additional_description, quantity, total_price) VALUES ($1, $2, $3, $4, $5)",
-        [cartId, item.id, item.description, item.itemQuantity, item.totalPrice]
+        "INSERT INTO Cart_Items (cart_id, item_id, additional_description, quantity, total_price,brand_name) VALUES ($1, $2, $3, $4, $5,$6)",
+        [cartId, item.id, item.description, item.itemQuantity, item.totalPrice,clientId]
       );
     }
 
@@ -40,10 +46,15 @@ router.post("/saveCart", async (req, res) => {
 router.get("/getCart/:userId", async (req, res) => {
   const { userId } = req.params;
 
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
   try {
     const cartResult = await pool.query(
-      "SELECT cart_id FROM Cart WHERE user_id = $1",
-      [userId]
+      "SELECT cart_id FROM Cart WHERE user_id = $1 AND brand_name = $2",
+      [userId,clientId]
     );
 
     if (cartResult.rows.length === 0) {
@@ -58,8 +69,9 @@ router.get("/getCart/:userId", async (req, res) => {
               ci.quantity, ci.total_price
        FROM Cart_Items ci
        JOIN Items i ON ci.item_id = i.item_id
-       WHERE ci.cart_id = $1`,
-      [cartId]
+       WHERE ci.cart_id = $1
+       AND ci.brand_name = $2`,
+      [cartId,clientId]
     );
 
     res.status(200).json({ success: true, cart: cartItemsResult.rows });

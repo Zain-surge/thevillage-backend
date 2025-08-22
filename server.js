@@ -170,7 +170,7 @@ client.on("notification", async (msg) => {
 
   if (msg.channel === "offer_update_channel") {
     const updatedAdmin = JSON.parse(msg.payload);
-    console.log("📣 Broadcasting updated offers:", updatedAdmin.offers);
+    console.log("📣 Broadcasting updated offers:", updatedAdmin);
     io.emit("offers_updated", updatedAdmin.offers); // 🔁 Emit to frontend
   }
 

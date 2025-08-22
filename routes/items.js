@@ -45,6 +45,11 @@ router.put("/set-availability", async (req, res) => {
   console.log("AVAILABILITY");
   const { item_id, availability } = req.body;
 
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
   if (typeof item_id === "undefined" || typeof availability !== "boolean") {
     return res.status(400).json({
       error:
@@ -54,8 +59,8 @@ router.put("/set-availability", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `UPDATE Items SET availability = $1 WHERE item_id = $2 RETURNING *`,
-      [availability, item_id]
+      `UPDATE Items SET availability = $1 WHERE item_id = $2 AND brand_name = $3 RETURNING *`,
+      [availability, item_id, clientId]
     );
 
     if (result.rowCount === 0) {
