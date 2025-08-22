@@ -5,9 +5,19 @@ const router = express.Router();
 
 router.get("/items", async (req, res) => {
   console.log("TIME TO FETCH ITEMS NOW");
+   const clientId = req.headers["x-client-id"];
+  console.log("Client ID (brand_name):", clientId);
+
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
   try {
     const result = await pool.query(
-      "SELECT item_id,item_name, description,price_options,type,toppings, cheese, sauces,subtype, availability  FROM Items Where brand_name='TVP'"
+      `SELECT item_id, item_name, description, price_options, type, toppings, cheese, sauces, subtype, availability  
+       FROM Items 
+       WHERE brand_name = $1`, 
+      [clientId]
     );
     const items = result.rows.map((item) => ({
       id: item.item_id,
