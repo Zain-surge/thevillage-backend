@@ -15,6 +15,7 @@ router.post("/create", async (req, res) => {
   if (!name || !email || !username || !password) {
     return res.status(400).json({ error: "Missing required fields" });
   }
+  console.log("CLIENT ID: ", clientId)
 
   try {
     const result = await pool.query(
