@@ -19,8 +19,14 @@ router.post("/create", async (req, res) => {
     order_source,
     driver_id,
   } = req.body;
+
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
   const result = await pool.query(
-    "INSERT INTO Orders (user_id, guest_id, transaction_id, payment_type, order_type, total_price, extra_notes,status,order_source,driver_id) VALUES ($1, $2, $3, $4, $5, $6, $7,$8,$9,$10) RETURNING order_id",
+    "INSERT INTO Orders (user_id, guest_id, transaction_id, payment_type, order_type, total_price, extra_notes,status,order_source,driver_id,brand_name) VALUES ($1, $2, $3, $4, $5, $6, $7,$8,$9,$10,$11) RETURNING order_id",
     [
       user_id,
       guest_id,
@@ -32,6 +38,7 @@ router.post("/create", async (req, res) => {
       status,
       order_source,
       driver_id,
+      clientId
     ]
   );
   console.log("ORDER ADDED SUCCESSSFULLY");
@@ -49,12 +56,18 @@ const transporter = nodemailer.createTransport({
 router.post("/update-status", async (req, res) => {
   const { order_id, status, driver_id } = req.body;
 
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
+
   try {
     // Update order status in DB
     const updateResult = await pool.query(
-      `UPDATE Orders SET status = $1, driver_id = $2 WHERE order_id = $3
+      `UPDATE Orders SET status = $1, driver_id = $2 WHERE order_id = $3 AND brand_name=$4
        RETURNING order_type, user_id, guest_id, driver_id`,
-      [status, driver_id, order_id]
+      [status, driver_id, order_id, clientId]
     );
 
     if (updateResult.rowCount === 0) {
@@ -113,8 +126,9 @@ router.post("/update-status", async (req, res) => {
         JOIN Order_Items oi ON o.order_id = oi.order_id
         JOIN Items i ON oi.item_id = i.item_id
         WHERE o.order_id = $1
+        AND o.brand_name=$2
         `,
-        [order_id]
+        [order_id, clientId]
       );
 
       const orderRows = orderDetailsResult.rows;
@@ -175,8 +189,8 @@ router.post("/update-status", async (req, res) => {
           //   )
           //   .join('\n');
 
-          const deliveryAddress = order_type === "delivery" 
-            ? `${orderData.street_address}, ${orderData.city}, ${orderData.county} ${orderData.postal_code}` 
+          const deliveryAddress = order_type === "delivery"
+            ? `${orderData.street_address}, ${orderData.city}, ${orderData.county} ${orderData.postal_code}`
             : '';
 
           const emailBody = `
@@ -206,10 +220,9 @@ router.post("/update-status", async (req, res) => {
         
         <div class="content">
             <p>Hi ${orderData.customer_name || 'Valued Customer'}!</p>
-            <p>${
-              order_type === "delivery"
-                ? `Great news! Your delicious order is now on its way to you. Our driver will be there soon! 🍕🚗`
-                : `Your order is ready and waiting for you! Come pick it up whenever you're ready. 🍕🎉`
+            <p>${order_type === "delivery"
+              ? `Great news! Your delicious order is now on its way to you. Our driver will be there soon! 🍕🚗`
+              : `Your order is ready and waiting for you! Come pick it up whenever you're ready. 🍕🎉`
             }</p>
 
             <div class="order-details">
@@ -297,9 +310,15 @@ router.post("/add-item", async (req, res) => {
   try {
     const { order_id, item_id, quantity, description, total_price } = req.body;
 
+    const clientId = req.headers["x-client-id"];
+    if (!clientId) {
+      return res.status(400).json({ error: "Missing client ID in headers" });
+    }
+
+
     const newOrderItem = await pool.query(
-      "INSERT INTO Order_Items (order_id, item_id, quantity, description, total_price) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-      [order_id, item_id, quantity, description, total_price]
+      "INSERT INTO Order_Items (order_id, item_id, quantity, description, total_price,brand_name) VALUES ($1, $2, $3, $4, $5,$6) RETURNING *",
+      [order_id, item_id, quantity, description, total_price, clientId]
     );
 
     res.status(201).json(newOrderItem.rows[0]);
@@ -341,9 +360,9 @@ router.get("/today", async (req, res) => {
       LEFT JOIN Guests g ON o.guest_id = g.guest_id
       JOIN Order_Items oi ON o.order_id = oi.order_id
       JOIN Items i ON oi.item_id = i.item_id
-      WHERE DATE(o.created_at) = CURRENT_DATE
+      WHERE DATE(o.created_at) = CURRENT_DATE AND brand_name=$1
       ORDER BY o.created_at DESC
-      `
+      `, [clientId]
     );
 
     const rawData = result.rows;
@@ -397,6 +416,10 @@ router.get("/today", async (req, res) => {
 
 router.post("/full-create", async (req, res) => {
   console.log("REQUEST", req.body);
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
 
   let rawBody = "";
   req.on("data", (chunk) => {
@@ -435,8 +458,8 @@ router.post("/full-create", async (req, res) => {
     let guest_id = null;
     if (!user_id && guest) {
       const guestResult = await client.query(
-        `INSERT INTO Guests (name, email, phone_number, street_address, city, county, postal_code)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO Guests (name, email, phone_number, street_address, city, county, postal_code,brand_name)
+         VALUES ($1, $2, $3, $4, $5, $6, $7,$8)
          RETURNING guest_id`,
         [
           guest.name,
@@ -446,6 +469,7 @@ router.post("/full-create", async (req, res) => {
           guest.city,
           guest.county,
           guest.postal_code,
+          clientId
         ]
       );
       guest_id = guestResult.rows[0].guest_id;
@@ -453,8 +477,8 @@ router.post("/full-create", async (req, res) => {
 
     // Step 2: Create order
     const orderResult = await client.query(
-      `INSERT INTO Orders (user_id, guest_id, transaction_id, payment_type, order_type, total_price, extra_notes, status, order_source,change_due)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO Orders (user_id, guest_id, transaction_id, payment_type, order_type, total_price, extra_notes, status, order_source,change_due,brand_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11)
        RETURNING order_id`,
       [
         user_id || null,
@@ -467,6 +491,7 @@ router.post("/full-create", async (req, res) => {
         status,
         order_source,
         change_due || 0,
+        clientId
       ]
     );
     const order_id = orderResult.rows[0].order_id;
@@ -475,16 +500,17 @@ router.post("/full-create", async (req, res) => {
     const insertValues = items
       .map(
         (item) =>
-          `('${order_id}', '${item.item_id}', ${item.quantity}, '${item.description}', ${item.total_price})`
+          `('${order_id}', '${item.item_id}', ${item.quantity}, '${item.description}', ${item.total_price}, '${clientID}')`
       )
       .join(",");
 
     await client.query(
-      `INSERT INTO Order_Items (order_id, item_id, quantity, description, total_price)
-       VALUES ${insertValues}`
+      `INSERT INTO Order_Items (order_id, item_id, quantity, description, total_price, brand_name)
+   VALUES ${insertValues}`
     );
 
     await client.query("COMMIT");
+
 
     res.status(201).json({ order_id });
   } catch (error) {
@@ -502,6 +528,11 @@ const normalizePhone = (phone) => {
 router.post("/search-customer", async (req, res) => {
   const { phone_number } = req.body;
 
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
   if (!phone_number) {
     return res.status(400).json({ error: "Phone number is required" });
   }
@@ -514,10 +545,10 @@ router.post("/search-customer", async (req, res) => {
       `
       SELECT name, email, street_address, city, county, postal_code, phone_number
       FROM Users
-      WHERE REGEXP_REPLACE(phone_number, '[^0-9]', '', 'g') = $1
+      WHERE REGEXP_REPLACE(phone_number, '[^0-9]', '', 'g') = $1 AND brand_name=$2
       LIMIT 1
     `,
-      [normalizedInput]
+      [normalizedInput,clientId]
     );
 
     if (userResult.rows.length > 0) {
@@ -541,10 +572,10 @@ router.post("/search-customer", async (req, res) => {
       `
       SELECT name, email, street_address, city, county, postal_code, phone_number
       FROM Guests
-      WHERE REGEXP_REPLACE(phone_number, '[^0-9]', '', 'g') = $1
+      WHERE REGEXP_REPLACE(phone_number, '[^0-9]', '', 'g') = $1 AND brand_name=$2
       LIMIT 1
     `,
-      [normalizedInput]
+      [normalizedInput,clientId]
     );
 
     if (guestResult.rows.length > 0) {
@@ -572,6 +603,12 @@ router.post("/search-customer", async (req, res) => {
 
 router.get("/details/:order_id", async (req, res) => {
   const { order_id } = req.params;
+
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
 
   try {
     const result = await pool.query(
@@ -606,8 +643,9 @@ router.get("/details/:order_id", async (req, res) => {
       JOIN Order_Items oi ON o.order_id = oi.order_id
       JOIN Items i ON oi.item_id = i.item_id
       WHERE o.order_id = $1
+      AND o.brand_name=$2
       `,
-      [order_id]
+      [order_id,clientId]
     );
 
     const rows = result.rows;
@@ -659,6 +697,12 @@ router.get("/details/:order_id", async (req, res) => {
 router.get("/track/:order_id", async (req, res) => {
   const { order_id } = req.params;
 
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
+
   try {
     const result = await pool.query(
       `
@@ -705,8 +749,9 @@ router.get("/track/:order_id", async (req, res) => {
       WHERE COALESCE(u.phone_number, g.phone_number) = $1
   AND o.status != 'blue'
   AND DATE(o.created_at) = CURRENT_DATE;
+  AND o.brand_name=$2
       `,
-      [order_id]
+      [order_id,clientId]
     );
 
     const rows = result.rows;
@@ -769,6 +814,12 @@ router.get("/track/:order_id", async (req, res) => {
 router.post("/cancel", async (req, res) => {
   const { order_id } = req.body;
 
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
+
   if (!order_id) {
     return res.status(400).json({ error: "Order ID is required" });
   }
@@ -776,8 +827,8 @@ router.post("/cancel", async (req, res) => {
   try {
     // First, check if the order exists and get its creation time
     const orderCheckResult = await pool.query(
-      "SELECT order_id, status, created_at FROM Orders WHERE order_id = $1",
-      [order_id]
+      "SELECT order_id, status, created_at FROM Orders WHERE order_id = $1 AND brand_name=$2",
+      [order_id,clientId]
     );
 
     if (orderCheckResult.rowCount === 0) {
@@ -808,8 +859,8 @@ router.post("/cancel", async (req, res) => {
 
     // Update order status to cancelled
     const updateResult = await pool.query(
-      "UPDATE Orders SET status = 'cancelled' WHERE order_id = $1 RETURNING order_id, status",
-      [order_id]
+      "UPDATE Orders SET status = 'cancelled' WHERE order_id = $1 AND brand_name=$2 RETURNING order_id, status",
+      [order_id,clientId]
     );
 
     if (updateResult.rowCount === 0) {

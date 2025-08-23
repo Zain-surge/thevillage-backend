@@ -18,9 +18,9 @@ router.post("/create", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `INSERT INTO drivers (name, email, username, password, phone_number)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [name, email, username, password, phone_number]
+      `INSERT INTO drivers (name, email, username, password, phone_number,brand_name)
+       VALUES ($1, $2, $3, $4, $5,$6) RETURNING *`,
+      [name, email, username, password, phone_number,clientId]
     );
 
     res
@@ -43,8 +43,8 @@ router.put("/deactivate/:username", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `UPDATE drivers SET is_active = FALSE WHERE username = $1 RETURNING *`,
-      [username]
+      `UPDATE drivers SET is_active = FALSE WHERE username = $1 AND brand_name= $2 RETURNING *`,
+      [username,clientId]
     );
 
     if (result.rows.length === 0) {
@@ -78,8 +78,8 @@ router.post("/login", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT * FROM drivers WHERE username = $1`,
-      [username]
+      `SELECT * FROM drivers WHERE username = $1 AND brand_name=$2`,
+      [username,clientId]
     );
 
     const driver = result.rows[0];
@@ -152,6 +152,7 @@ LEFT JOIN order_items oi ON o.order_id = oi.order_id
 LEFT JOIN items i ON oi.item_id = i.item_id
 WHERE o.driver_id IS NOT NULL
   AND DATE(o.created_at) = $1
+  AND o.brand_name= $2
 GROUP BY 
   o.order_id,
   customer_name,
@@ -165,7 +166,7 @@ ORDER BY o.created_at DESC;
 
     `;
 
-    const result = await pool.query(query, [date]);
+    const result = await pool.query(query, [date,clientId]);
 
     res.status(200).json(result.rows);
   } catch (error) {

@@ -1,6 +1,5 @@
 import express from "express";
 import session from "express-session";
-import cookieSession from "cookie-session";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -235,7 +234,6 @@ async function getOrderDetails(orderId) {
 app.use("/auth", authRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/item", items);
-console.log("I AM HERE");
 app.use("/admin", offers);
 app.use("/cart", cart);
 app.use("/users", users);

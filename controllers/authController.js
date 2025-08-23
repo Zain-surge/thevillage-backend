@@ -19,8 +19,15 @@ export const signUp = async (req, res) => {
       county,
       postal_code,
     } = req.body;
+    const clientId = req.headers["x-client-id"];
+    if (!clientId) {
+      return res.status(400).json({ error: "Missing client ID in headers" });
+    }
 
-    const existingUser = await getUserByEmail(email);
+
+
+
+    const existingUser = await getUserByEmail(email, clientId);
     if (existingUser)
       return res.status(400).json({ message: "Email already exists" });
 
@@ -48,14 +55,27 @@ export const signUp = async (req, res) => {
 
 export const verifyOtp = async (req, res) => {
   const { data, otp } = req.body;
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
   const { email } = data; // Extract email from `data`
   if (otps[email] === otp) {
     delete otps[email];
 
     const hashedPassword = await bcrypt.hash(req.body.data.password, 10);
-    const newUser = await createUser({ ...req.body.data, hashedPassword });
+    const newUser = await createUser({
+      ...data,
+      hashedPassword,
+      client_id: clientId
+    });
 
-    req.session.user = { id: newUser.user_id, email: newUser.email };
+    req.session.user = {
+      id: newUser.user_id,
+      email: newUser.email,
+      client_id: newUser.client_id  // optional: keep in session if you need it later
+    };
     res.status(201).json({ success: true, message: "Account created" });
   } else {
     res.status(400).json({ success: false, message: "Invalid OTP" });
@@ -65,7 +85,12 @@ export const verifyOtp = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await getUserByEmail(email);
+    const clientId = req.headers["x-client-id"];
+    if (!clientId) {
+      return res.status(400).json({ error: "Missing client ID in headers" });
+    }
+
+    const user = await getUserByEmail(email, clientId);
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -136,10 +161,15 @@ export const checkSession = (req, res) => {
 };
 export const adminLogin = async (req, res) => {
   const { username, password } = req.body;
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
   try {
     const result = await pool.query(
-      "SELECT id, username, password, shop_open, delivery_radius, delivery_locations FROM admins WHERE username = $1",
-      [username]
+      "SELECT id, username, password, shop_open, delivery_radius, delivery_locations FROM admins WHERE username = $1 AND brand_name=$2",
+      [username, clientId]
     );
 
     if (result.rows.length === 0) {
