@@ -328,6 +328,12 @@ router.post("/add-item", async (req, res) => {
   }
 });
 router.get("/today", async (req, res) => {
+
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+  
   try {
     const result = await pool.query(
       `
