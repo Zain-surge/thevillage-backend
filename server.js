@@ -171,7 +171,7 @@ client.on("notification", async (msg) => {
   if (msg.channel === "offer_update_channel") {
     const updatedAdmin = JSON.parse(msg.payload);
     console.log("📣 Broadcasting updated offers:", updatedAdmin);
-    io.emit("offers_updated", updatedAdmin.offers); // 🔁 Emit to frontend
+    io.emit("offers_updated", updatedAdmin); // 🔁 Emit to frontend
   }
 
   if (msg.channel === "shop_status_channel") {
@@ -192,7 +192,7 @@ async function getOrderDetails(orderId) {
 
     const orderQuery = `
       SELECT 
-        o.order_id, o.payment_type,o.transaction_id, o.order_type, o.total_price, o.extra_notes, o.order_source,o.change_due,o.status,o.driver_id,
+        o.order_id, o.payment_type,o.transaction_id, o.order_type, o.total_price, o.extra_notes, o.order_source,o.change_due,o.status,o.driver_id,o.brand_name,
         COALESCE(u.name, g.name) AS customer_name,
           COALESCE(u.email, g.email) AS customer_email,
           COALESCE(u.phone_number, g.phone_number) AS phone_number,
