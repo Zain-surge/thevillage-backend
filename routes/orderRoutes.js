@@ -333,7 +333,7 @@ router.get("/today", async (req, res) => {
   if (!clientId) {
     return res.status(400).json({ error: "Missing client ID in headers" });
   }
-  
+
   try {
     const result = await pool.query(
       `
@@ -366,7 +366,7 @@ router.get("/today", async (req, res) => {
       LEFT JOIN Guests g ON o.guest_id = g.guest_id
       JOIN Order_Items oi ON o.order_id = oi.order_id
       JOIN Items i ON oi.item_id = i.item_id
-      WHERE DATE(o.created_at) = CURRENT_DATE AND brand_name=$1
+      WHERE DATE(o.created_at) = CURRENT_DATE AND o.brand_name=$1
       ORDER BY o.created_at DESC
       `, [clientId]
     );
