@@ -506,7 +506,7 @@ router.post("/full-create", async (req, res) => {
     const insertValues = items
       .map(
         (item) =>
-          `('${order_id}', '${item.item_id}', ${item.quantity}, '${item.description}', ${item.total_price}, '${clientID}')`
+          `('${order_id}', '${item.item_id}', ${item.quantity}, '${item.description}', ${item.total_price}, '${clientId}')`
       )
       .join(",");
 
