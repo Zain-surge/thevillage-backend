@@ -32,7 +32,7 @@ const io = new Server(server, {
       "https://the-village-pizzeria.web.app",
       "http://localhost:3000",
       "https://dallas-gio.web.app",
-      "https://supersub-45e25.web.app/",
+      "https://supersub-45e25.web.app",
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
@@ -57,7 +57,7 @@ app.use(
       "https://the-village-pizzeria.web.app",
       "http://localhost:3000",
       "https://dallas-gio.web.app",
-      "https://supersub-45e25.web.app/",
+      "https://supersub-45e25.web.app",
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true, // Allows cookies to be sent across origins
