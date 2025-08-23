@@ -19,8 +19,8 @@ router.post("/create", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `INSERT INTO drivers (name, email, username, password, phone_number,brand_name)
-       VALUES ($1, $2, $3, $4, $5,$6) RETURNING *`,
+      `INSERT INTO drivers (name, email, username, password, phone_number, brand_name)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
       [name, email, username, password, phone_number,clientId]
     );
 
