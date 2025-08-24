@@ -764,49 +764,53 @@ router.get("/track/:order_id", async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    // Build the response
-    const orderData = {
-      order_id: rows[0].order_id,
-      payment_type: rows[0].payment_type,
-      transaction_id: rows[0].transaction_id,
-      order_type: rows[0].order_type,
-      total_price: rows[0].order_total_price,
-      extra_notes: rows[0].order_extra_notes,
-      status: rows[0].status,
-      created_at: rows[0].created_at,
-      change_due: rows[0].change_due,
-      order_source: rows[0].order_source,
+    const ordersMap = {};
 
-      driver: rows[0].driver_id
-        ? {
-          driver_id: rows[0].driver_id,
-          name: rows[0].driver_name,
-          phone: rows[0].driver_phone,
-          email: rows[0].driver_email,
-          is_active: rows[0].driver_is_active,
-        }
-        : null,
+    rows.forEach(row => {
+      if (!ordersMap[row.order_id]) {
+        ordersMap[row.order_id] = {
+          order_id: row.order_id,
+          payment_type: row.payment_type,
+          transaction_id: row.transaction_id,
+          order_type: row.order_type,
+          total_price: row.order_total_price,
+          extra_notes: row.order_extra_notes,
+          status: row.status,
+          created_at: row.created_at,
+          change_due: row.change_due,
+          order_source: row.order_source,
+          driver: row.driver_id ? {
+            driver_id: row.driver_id,
+            name: row.driver_name,
+            phone: row.driver_phone,
+            email: row.driver_email,
+            is_active: row.driver_is_active,
+          } : null,
+          customer: {
+            name: row.customer_name,
+            email: row.customer_email,
+            phone_number: row.phone_number,
+            street_address: row.street_address,
+            city: row.city,
+            county: row.county,
+            postal_code: row.postal_code,
+          },
+          items: []
+        };
+      }
 
-      customer: {
-        name: rows[0].customer_name,
-        email: rows[0].customer_email,
-        phone_number: rows[0].phone_number,
-        street_address: rows[0].street_address,
-        city: rows[0].city,
-        county: rows[0].county,
-        postal_code: rows[0].postal_code,
-      },
-
-      items: rows.map((row) => ({
+      ordersMap[row.order_id].items.push({
         item_name: row.item_name,
         item_type: row.item_type,
         quantity: row.quantity,
         description: row.item_description,
         total_price: row.item_total_price,
-      })),
-    };
+      });
+    });
 
-    res.status(200).json(orderData);
+    const orders = Object.values(ordersMap);
+    res.status(200).json(orders);
+
   } catch (error) {
     console.error("❌ Error tracking order:", error);
     res.status(500).json({ error: "Internal Server Error" });
