@@ -517,6 +517,146 @@ router.post("/full-create", async (req, res) => {
     );
 
     await client.query("COMMIT");
+    if (customer_email && transporter) {
+      try {
+        // Prepare order data for email template
+        const orderData = {
+          order_id: order_id,
+          customer_name: customer_name,
+          payment_type: payment_type,
+          created_at: new Date(),
+          transaction_id: transaction_id,
+          change_due: change_due || 0,
+          phone_number: guest?.phone_number || '',
+          items: items.map(item => ({
+            quantity: item.quantity,
+            item_name: item.description, // Assuming description contains item name
+            item_total_price: parseFloat(item.total_price).toFixed(2),
+            item_description: item.description
+          })),
+          total_price: parseFloat(total_price).toFixed(2),
+          extra_notes: extra_notes,
+          driver: {
+            name: '', // Add driver info if available
+            phone: ''
+          }
+        };
+
+        const subject = `Order Confirmation #${order_id} - Successfully Placed!`;
+
+        const emailBody = `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+    .order-details { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
+    .items-list { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
+    .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
+    .highlight { color: #4CAF50; font-weight: bold; }
+    .price { font-weight: bold; color: #4CAF50; }
+    h3 { margin-top: 0; color: #4CAF50; }
+    .success-badge { background-color: #4CAF50; color: white; padding: 5px 15px; border-radius: 20px; display: inline-block; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>✅ Order Successfully Placed!</h1>
+      <p>Order #${orderData.order_id}</p>
+      <div class="success-badge">Confirmed</div>
+    </div>
+    <div class="content">
+      <p>Hi ${orderData.customer_name || 'Valued Customer'}!</p>
+      <p>Thank you for your order! We've successfully received your order and it's now being prepared. ${order_type === "delivery" ?
+            "We'll notify you once it's out for delivery! 🍕🚗" :
+            "We'll let you know when it's ready for pickup! 🍕📞"
+          }</p>
+      
+      <div class="order-details">
+        <h3>📋 Order Summary</h3>
+        <p><strong>Order ID:</strong> #${orderData.order_id}</p>
+        <p><strong>Order Type:</strong> <span class="highlight">${order_type.charAt(0).toUpperCase() + order_type.slice(1)}</span></p>
+        <p><strong>Payment Method:</strong> ${orderData.payment_type}</p>
+        <p><strong>Order Time:</strong> ${new Date(orderData.created_at).toLocaleString()}</p>
+        ${orderData.transaction_id ? `<p><strong>Transaction ID:</strong> ${orderData.transaction_id}</p>` : ''}
+        ${orderData.change_due > 0 ? `<p><strong>Change Due:</strong> <span class="price">£${orderData.change_due.toFixed(2)}</span></p>` : ''}
+        <p><strong>Status:</strong> <span class="highlight">Order Confirmed</span></p>
+      </div>
+
+      ${order_type === "delivery" ? `
+      <div class="order-details">
+        <h3>📍 Delivery Details</h3>
+        <p><strong>Address:</strong> ${deliveryAddress}</p>
+        <p><strong>Phone:</strong> ${orderData.phone_number}</p>
+        <p><em>Estimated delivery time: 30-45 minutes</em></p>
+      </div>` : `
+      <div class="order-details">
+        <h3>🏪 Pickup Details</h3>
+        <p><strong>Phone:</strong> ${orderData.phone_number}</p>
+        <p><em>Estimated pickup time: 15-25 minutes</em></p>
+        <p><em>We'll call you when your order is ready!</em></p>
+      </div>`}
+
+      <div class="items-list">
+        <h3>🍽️ Order Items</h3>
+        ${orderData.items.map(item => `
+        <div style="border-bottom: 1px solid #eee; padding: 8px 0;">
+          <strong>${item.quantity}x ${item.item_name}</strong> - <span class="price">£${item.item_total_price}</span>
+          ${item.item_description ? `<br><small style="color: #666;">${item.item_description}</small>` : ''}
+        </div>`).join('')}
+        <div style="padding: 10px 0; border-top: 2px solid #4CAF50; margin-top: 10px;">
+          <strong>Total Paid: <span class="price">£${orderData.total_price}</span></strong>
+        </div>
+      </div>
+
+      ${orderData.extra_notes ? `
+      <div class="order-details">
+        <h3>📝 Special Instructions</h3>
+        <p>${orderData.extra_notes}</p>
+      </div>` : ''}
+
+      <div style="background-color: #e8f5e8; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #4CAF50;">
+        <p><strong>What's Next?</strong></p>
+        <ul style="margin: 10px 0;">
+          <li>Your order is being prepared by our kitchen team</li>
+          ${order_type === "delivery" ?
+            "<li>You'll receive another email when your order is out for delivery</li>" :
+            "<li>We'll call you when your order is ready for pickup</li>"
+          }
+          <li>Keep this email for your records</li>
+        </ul>
+      </div>
+
+      <p>Thank you for choosing us! If you have any questions about your order, please don't hesitate to contact us. 😊</p>
+    </div>
+    <div class="footer">
+      <p><strong>Need Help?</strong></p>
+      <p>Contact us at ${process.env.EMAIL_USER} or call us directly</p>
+      <p>Order Reference: #${orderData.order_id}</p>
+      <hr style="border: 1px solid #555; margin: 10px 0;">
+      <p><small>This is an automated confirmation email. Please keep it for your records.</small></p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+        // Send email
+        await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: customer_email,
+          subject: subject,
+          html: emailBody,
+        });
+
+        console.log(`✅ Email sent successfully to ${customer_email}`);
+      } catch (emailError) {
+        console.error("❌ Failed to send email:", emailError);
+        // Don't fail the entire request if email fails
+      }
+    }
 
 
     res.status(201).json({ order_id });
@@ -600,6 +740,7 @@ router.post("/search-customer", async (req, res) => {
         phone_number: guest.phone_number,
       });
     }
+
 
     res.status(404).json({ message: "Customer not found" });
   } catch (error) {
