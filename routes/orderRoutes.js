@@ -463,10 +463,13 @@ router.post("/full-create", async (req, res) => {
 
     // Step 1: Create guest if guest info is provided
     let guest_id = null;
-    if (!user_id && guest) {
+    let customer_email = null;
+    let customer_name = null;
+    let deliveryAddress = "";
+     if (!user_id && guest) {
       const guestResult = await client.query(
-        `INSERT INTO Guests (name, email, phone_number, street_address, city, county, postal_code,brand_name)
-         VALUES ($1, $2, $3, $4, $5, $6, $7,$8)
+        `INSERT INTO Guests (name, email, phone_number, street_address, city, county, postal_code, brand_name) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
          RETURNING guest_id`,
         [
           guest.name,
@@ -476,10 +479,32 @@ router.post("/full-create", async (req, res) => {
           guest.city,
           guest.county,
           guest.postal_code,
-          clientId
+          clientId,
         ]
       );
       guest_id = guestResult.rows[0].guest_id;
+      customer_email = guest.email;
+      customer_name = guest.name;
+      
+      // Build delivery address for email
+      if (order_type === "delivery") {
+        deliveryAddress = [
+          guest.street_address,
+          guest.city,
+          guest.county,
+          guest.postal_code
+        ].filter(Boolean).join(", ");
+      }
+    } else if (user_id) {
+      // Get user email if user_id is provided
+      const userResult = await client.query(
+        `SELECT email, name FROM Users WHERE user_id = $1`,
+        [user_id]
+      );
+      if (userResult.rows.length > 0) {
+        customer_email = userResult.rows[0].email;
+        customer_name = userResult.rows[0].name;
+      }
     }
 
     // Step 2: Create order
