@@ -817,7 +817,6 @@ router.get("/track/:order_id", async (req, res) => {
 });
 
 // Add this new route to your existing orders router file
-
 router.post("/cancel", async (req, res) => {
   const { order_id } = req.body;
 
@@ -826,16 +825,33 @@ router.post("/cancel", async (req, res) => {
     return res.status(400).json({ error: "Missing client ID in headers" });
   }
 
-
   if (!order_id) {
     return res.status(400).json({ error: "Order ID is required" });
   }
 
   try {
-    // First, check if the order exists and get its creation time
+    // Fetch order + customer email
     const orderCheckResult = await pool.query(
-      "SELECT order_id, status, created_at FROM Orders WHERE order_id = $1 AND brand_name=$2",
-      [order_id,clientId]
+      `
+      SELECT 
+        o.order_id,
+        o.status,
+        o.created_at,
+        o.order_type,
+        o.payment_type,
+        o.total_price,
+        o.extra_notes,
+        o.order_source,
+        o.transaction_id,
+        o.change_due,
+        COALESCE(u.email, g.email) AS customer_email,
+        COALESCE(u.name, g.name) AS customer_name
+      FROM Orders o
+      LEFT JOIN Users u ON o.user_id = u.user_id AND o.brand_name = u.brand_name
+      LEFT JOIN Guests g ON o.guest_id = g.guest_id AND o.brand_name = g.brand_name
+      WHERE o.order_id = $1 AND o.brand_name = $2
+      `,
+      [order_id, clientId]
     );
 
     if (orderCheckResult.rowCount === 0) {
@@ -844,30 +860,32 @@ router.post("/cancel", async (req, res) => {
 
     const order = orderCheckResult.rows[0];
 
-    // Check if order is already cancelled or completed
-    if (order.status === 'cancelled') {
+    // Already cancelled?
+    if (order.status === "cancelled") {
       return res.status(400).json({ error: "Order is already cancelled" });
     }
 
-    if (order.status === 'blue') {
+    // Completed orders cannot be cancelled
+    if (order.status === "blue") {
       return res.status(400).json({ error: "Cannot cancel a completed order" });
     }
 
-    // Check if order is within 10-minute cancellation window
+    // 10-minute window check
     const orderTime = new Date(order.created_at);
     const currentTime = new Date();
-    const timeDifference = (currentTime - orderTime) / (1000 * 60); // difference in minutes
+    const timeDifference = (currentTime - orderTime) / (1000 * 60);
 
     if (timeDifference > 10) {
       return res.status(400).json({
-        error: "Cancellation period expired. Orders can only be cancelled within 10 minutes of placement."
+        error:
+          "Cancellation period expired. Orders can only be cancelled within 10 minutes of placement.",
       });
     }
 
-    // Update order status to cancelled
+    // Cancel the order
     const updateResult = await pool.query(
       "UPDATE Orders SET status = 'cancelled' WHERE order_id = $1 AND brand_name=$2 RETURNING order_id, status",
-      [order_id,clientId]
+      [order_id, clientId]
     );
 
     if (updateResult.rowCount === 0) {
@@ -876,16 +894,61 @@ router.post("/cancel", async (req, res) => {
 
     console.log(`✅ Order ${order_id} has been cancelled successfully`);
 
+    // Send cancellation email (if customer has email)
+    if (order.customer_email) {
+      const subject = `❌ Your Order #${order_id} Has Been Cancelled`;
+      const emailBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #c0392b; color: #fff; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+    .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Order Cancelled</h1>
+    </div>
+    <div class="content">
+      <p>Hi ${order.customer_name || "Customer"},</p>
+      <p>We wanted to let you know that your order <strong>#${order_id}</strong> has been successfully cancelled.</p>
+      <p>If you didn’t request this cancellation or have any questions, please contact our support team.</p>
+    </div>
+    <div class="footer">
+      <p>Thank you for choosing us.</p>
+      <p>— The ${clientId} Team</p>
+    </div>
+  </div>
+</body>
+</html>
+      `;
+
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: order.customer_email,
+        subject: subject,
+        html: emailBody,
+      });
+
+      console.log(`📧 Cancellation email sent to ${order.customer_email}`);
+    }
+
     res.status(200).json({
       message: "Order cancelled successfully",
       order_id: order_id,
-      status: "cancelled"
+      status: "cancelled",
+      email: order.customer_email || null,
     });
-
   } catch (error) {
     console.error("❌ Error cancelling order:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 export default router;
