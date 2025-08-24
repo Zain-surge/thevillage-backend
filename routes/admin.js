@@ -362,7 +362,7 @@ router.get("/sales-report/today", async (req, res) => {
     // ---------------- Paidouts Query ----------------
     const paidoutsQuery = await pool.query(
       `SELECT id, payout_date, label, amount
-       FROM paidouts
+       FROM paidout
        WHERE DATE(payout_date) = $1
          AND brand_name = $2
        ORDER BY payout_date ASC`,
@@ -606,7 +606,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
     // ---------------- Paidouts Query ----------------
     const paidoutsQuery = await pool.query(
       `SELECT id, payout_date, label, amount
-       FROM paidouts
+       FROM paidout
        WHERE DATE(payout_date) = $1
          AND brand_name = $2
        ORDER BY payout_date ASC`,
