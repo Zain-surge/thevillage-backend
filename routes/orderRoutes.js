@@ -448,6 +448,7 @@ router.post("/full-create", async (req, res) => {
       status,
       order_source,
       change_due,
+      discount,
       items,
     } = req.body;
     console.log(
@@ -483,8 +484,8 @@ router.post("/full-create", async (req, res) => {
 
     // Step 2: Create order
     const orderResult = await client.query(
-      `INSERT INTO Orders (user_id, guest_id, transaction_id, payment_type, order_type, total_price, extra_notes, status, order_source,change_due,brand_name)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11)
+      `INSERT INTO Orders (user_id, guest_id, transaction_id, payment_type, order_type, total_price, extra_notes, status, order_source,change_due,brand_name,discount)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11,$12)
        RETURNING order_id`,
       [
         user_id || null,
@@ -497,7 +498,7 @@ router.post("/full-create", async (req, res) => {
         status,
         order_source,
         change_due || 0,
-        clientId
+        clientId, discount
       ]
     );
     const order_id = orderResult.rows[0].order_id;

@@ -29,6 +29,72 @@ router.get("/offers", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch offers" });
   }
 });
+
+// Insert paidouts
+router.post("/paidouts", async (req, res) => {
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
+  const paidouts = req.body.paidouts; 
+  // expected format: [{ label: "Supplier Payment", amount: 200 }, { label: "Utility Bill", amount: 500 }]
+
+  if (!Array.isArray(paidouts) || paidouts.length === 0) {
+    return res.status(400).json({ error: "Paidouts list is required" });
+  }
+
+  try {
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
+    const insertQuery = `
+      INSERT INTO paidout (payout_date, label, amount, brand_name)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *;
+    `;
+
+    const inserted = [];
+    for (const p of paidouts) {
+      const result = await pool.query(insertQuery, [
+        today,
+        p.label,
+        p.amount,
+        clientId,
+      ]);
+      inserted.push(result.rows[0]);
+    }
+
+    res.status(201).json({ message: "Paidouts inserted", data: inserted });
+  } catch (error) {
+    console.error("Error inserting paidouts:", error);
+    res.status(500).json({ error: "Failed to insert paidouts" });
+  }
+});
+// Fetch today's paidouts
+router.get("/paidouts/today", async (req, res) => {
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
+  try {
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
+    const result = await pool.query(
+      "SELECT * FROM paidout WHERE brand_name = $1 AND payout_date = $2 ORDER BY id DESC",
+      [clientId, today]
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching today's paidouts:", error);
+    res.status(500).json({ error: "Failed to fetch today's paidouts" });
+  }
+});
+
+
+
+
 router.put("/offers/update", async (req, res) => {
   const { offer_text, value } = req.body;
 
@@ -168,7 +234,7 @@ router.get("/sales-report/today", async (req, res) => {
 
     // Total sales
     const totalSalesQuery = await pool.query(
-      `SELECT COALESCE(SUM(total_price), 0) AS total_sales 
+      `SELECT COALESCE(SUM(total_price), 0) AS total_sales , COALESCE(SUM(discount), 0) AS total_discount
        FROM orders 
        WHERE DATE(created_at) = $1
         AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2)
@@ -293,7 +359,18 @@ router.get("/sales-report/today", async (req, res) => {
       [todayStr, sourceParam, paymentParam, orderTypeParam,clientId]
     );
 
+    // ---------------- Paidouts Query ----------------
+    const paidoutsQuery = await pool.query(
+      `SELECT id, payout_date, label, amount
+       FROM paidouts
+       WHERE DATE(payout_date) = $1
+         AND brand_name = $2
+       ORDER BY payout_date ASC`,
+      [todayStr, clientId]
+    );
+
     const todaySales = parseFloat(totalSalesQuery.rows[0].total_sales);
+    const todayDiscount = parseFloat(totalSalesQuery.rows[0].total_discount);
     const lastWeekSales = parseFloat(totalSalesLastWeek.rows[0].total_sales);
     const salesincrease=todaySales-lastWeekSales;
 
@@ -305,6 +382,7 @@ router.get("/sales-report/today", async (req, res) => {
     res.status(200).json({
       date: todayStr,
       total_sales: totalSalesQuery.rows[0].total_sales,
+      total_discount:todayDiscount,
       sales_growth_percentage: parseFloat(growth.toFixed(2)),
       sales_increase:parseFloat(salesincrease.toFixed(2)),
       sales_by_payment_type: byPaymentQuery.rows,
@@ -313,6 +391,7 @@ router.get("/sales-report/today", async (req, res) => {
       most_selling_item: mostSellingItemQuery.rows[0] || {},
       most_delivered_postal_code: mostDeliveredPostalCodeQuery.rows[0] || null,
       all_items_sold: allItemsSoldQuery.rows,
+      paidouts: paidoutsQuery.rows, // ✅ added here
     });
   } catch (error) {
     console.error("❌ Error generating sales report:", error);
@@ -357,7 +436,8 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
 
     // Total sales for the specified date
     const totalSalesQuery = await pool.query(
-      `SELECT COALESCE(SUM(total_price), 0) AS total_sales 
+      `SELECT COALESCE(SUM(total_price), 0) AS total_sales ,
+          COALESCE(SUM(discount), 0) AS total_discount
        FROM orders 
        WHERE DATE(created_at) = $1
        AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2)
@@ -523,8 +603,18 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
        ORDER BY total_quantity_sold DESC`,
       [date, sourceParam, paymentParam, orderTypeParam,clientId]
     );
+    // ---------------- Paidouts Query ----------------
+    const paidoutsQuery = await pool.query(
+      `SELECT id, payout_date, label, amount
+       FROM paidouts
+       WHERE DATE(payout_date) = $1
+         AND brand_name = $2
+       ORDER BY payout_date ASC`,
+      [date, clientId]
+    );
 
     const todaySales = parseFloat(totalSalesQuery.rows[0].total_sales);
+    const todayDiscount = parseFloat(totalSalesQuery.rows[0].total_discount);
     const lastWeekSales = parseFloat(totalSalesLastWeek.rows[0].total_sales);
     const salesincrease=todaySales-lastWeekSales;
 
@@ -536,6 +626,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
     res.status(200).json({
       date: dateStr,
       total_sales_amount: totalSalesQuery.rows[0].total_sales,
+      total_discount: todayDiscount,   // ✅ NEW
       total_orders_placed: parseInt(totalOrdersQuery.rows[0].total_orders),
       sales_growth_percentage: parseFloat(growth.toFixed(2)),
       sales_increase:parseFloat(salesincrease.toFixed(2)),
@@ -546,6 +637,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
       most_sold_type: mostSoldTypeQuery.rows[0] || {},
       most_delivered_postal_code: mostDeliveredPostalCodeQuery.rows[0] || null,
       all_items_sold: allItemsSoldQuery.rows,
+      paidouts: paidoutsQuery.rows,
     });
   } catch (error) {
     console.error("❌ Error generating daily sales report:", error);
