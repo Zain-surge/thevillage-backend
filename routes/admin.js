@@ -634,6 +634,26 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
       [date, clientId]
     );
 
+    const deliveriesByPostalCodeQuery = await pool.query(
+      `SELECT 
+         COALESCE(u.postal_code, g.postal_code) AS postal_code,
+         COUNT(*) AS delivery_count,
+         SUM(o.total_price) AS total_delivery_sales
+       FROM orders o
+       LEFT JOIN users u ON o.user_id = u.user_id
+       LEFT JOIN guests g ON o.guest_id = g.guest_id
+       WHERE DATE(o.created_at) = $1 
+         AND LOWER(o.order_type) = 'delivery'
+         AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
+         AND ($2::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $2)
+         AND ($3::text IS NULL OR o.payment_type = $3)
+         AND ($4::text IS NULL OR o.order_type = $4)
+         AND o.brand_name = $5
+       GROUP BY COALESCE(u.postal_code, g.postal_code)
+       ORDER BY delivery_count DESC`,
+      [date, sourceParam, paymentParam, orderTypeParam, clientId]
+    );
+
     const todaySales = parseFloat(totalSalesQuery.rows[0].total_sales);
     const todayDiscount = parseFloat(totalSalesQuery.rows[0].total_discount);
     const lastWeekSales = parseFloat(totalSalesLastWeek.rows[0].total_sales);
@@ -657,6 +677,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
       most_sold_item: mostSoldItemQuery.rows[0] || {},
       most_sold_type: mostSoldTypeQuery.rows[0] || {},
       most_delivered_postal_code: mostDeliveredPostalCodeQuery.rows[0] || null,
+      deliveries_by_postal_code: deliveriesByPostalCodeQuery.rows, // ✅ New field added
       all_items_sold: allItemsSoldQuery.rows,
       paidouts: paidoutsQuery.rows,
     });
