@@ -555,7 +555,7 @@ router.post("/search-customer", async (req, res) => {
       WHERE REGEXP_REPLACE(phone_number, '[^0-9]', '', 'g') = $1 AND brand_name=$2
       LIMIT 1
     `,
-      [normalizedInput,clientId]
+      [normalizedInput, clientId]
     );
 
     if (userResult.rows.length > 0) {
@@ -582,7 +582,7 @@ router.post("/search-customer", async (req, res) => {
       WHERE REGEXP_REPLACE(phone_number, '[^0-9]', '', 'g') = $1 AND brand_name=$2
       LIMIT 1
     `,
-      [normalizedInput,clientId]
+      [normalizedInput, clientId]
     );
 
     if (guestResult.rows.length > 0) {
@@ -652,7 +652,7 @@ router.get("/details/:order_id", async (req, res) => {
       WHERE o.order_id = $1
       AND o.brand_name=$2
       `,
-      [order_id,clientId]
+      [order_id, clientId]
     );
 
     const rows = result.rows;
@@ -725,14 +725,12 @@ router.get("/track/:order_id", async (req, res) => {
           o.change_due,
           o.order_source,
 
-          -- Driver details
           d.id AS driver_id,
           d.name AS driver_name,
           d.phone_number AS driver_phone,
           d.email AS driver_email,
           d.is_active AS driver_is_active,
 
-          -- Customer details
           COALESCE(u.name, g.name) AS customer_name,
           COALESCE(u.email, g.email) AS customer_email,
           COALESCE(u.phone_number, g.phone_number) AS phone_number,
@@ -741,7 +739,6 @@ router.get("/track/:order_id", async (req, res) => {
           COALESCE(u.county, g.county) AS county,
           COALESCE(u.postal_code, g.postal_code) AS postal_code,
 
-          -- Items
           i.item_name,
           i.type AS item_type,
           oi.quantity,
@@ -754,11 +751,11 @@ router.get("/track/:order_id", async (req, res) => {
       JOIN Order_Items oi ON o.order_id = oi.order_id
       JOIN Items i ON oi.item_id = i.item_id
       WHERE COALESCE(u.phone_number, g.phone_number) = $1
-  AND o.status != 'blue'
-  AND DATE(o.created_at) = CURRENT_DATE;
-  AND o.brand_name=$2
+      AND o.status != 'blue'
+      AND DATE(o.created_at) = CURRENT_DATE
+      AND o.brand_name=$2
       `,
-      [order_id,clientId]
+      [order_id, clientId]
     );
 
     const rows = result.rows;
