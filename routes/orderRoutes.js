@@ -466,7 +466,7 @@ router.post("/full-create", async (req, res) => {
     let customer_email = null;
     let customer_name = null;
     let deliveryAddress = "";
-     if (!user_id && guest) {
+    if (!user_id && guest) {
       const guestResult = await client.query(
         `INSERT INTO Guests (name, email, phone_number, street_address, city, county, postal_code, brand_name) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
@@ -485,7 +485,7 @@ router.post("/full-create", async (req, res) => {
       guest_id = guestResult.rows[0].guest_id;
       customer_email = guest.email;
       customer_name = guest.name;
-      
+
       // Build delivery address for email
       if (order_type === "delivery") {
         deliveryAddress = [
@@ -1064,35 +1064,43 @@ router.post("/cancel", async (req, res) => {
     // Send cancellation email (if customer has email)
     if (order.customer_email) {
       const subject = `❌ Your Order #${order_id} Has Been Cancelled`;
+      const refundMessage =
+        order.payment_type === "Card"
+          ? `
+        <p>Since you paid by card, a refund of <strong>£${order.total_price}</strong> will be processed automatically.</p>
+        <p>Please allow 7–14 business days for the refund to appear in your account.</p>
+      `
+          : "";
       const emailBody = `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background-color: #c0392b; color: #fff; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-    .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
-    .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>Order Cancelled</h1>
-    </div>
-    <div class="content">
-      <p>Hi ${order.customer_name || "Customer"},</p>
-      <p>We wanted to let you know that your order <strong>#${order_id}</strong> has been successfully cancelled.</p>
-      <p>If you didn’t request this cancellation or have any questions, please contact our support team.</p>
-    </div>
-    <div class="footer">
-      <p>Thank you for choosing us.</p>
-      <p>— The ${clientId} Team</p>
-    </div>
-  </div>
-</body>
-</html>
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <style>
+                body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background-color: #c0392b; color: #fff; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+                .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+                .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>Order Cancelled</h1>
+                </div>
+                <div class="content">
+                  <p>Hi ${order.customer_name || "Customer"},</p>
+                  <p>We wanted to let you know that your order <strong>#${order_id}</strong> has been successfully cancelled.</p>
+                  ${refundMessage}
+                  <p>If you didn’t request this cancellation or have any questions, please contact our support team.</p>
+                </div>
+                <div class="footer">
+                  <p>Thank you for choosing us.</p>
+                  <p>— The ${clientId} Team</p>
+                </div>
+              </div>
+            </body>
+            </html>
       `;
 
       await transporter.sendMail({
