@@ -450,6 +450,7 @@ router.post("/full-create", async (req, res) => {
       change_due,
       discount,
       items,
+      paid_status
     } = req.body;
     console.log(
       "Parsed transaction_id:",
@@ -509,8 +510,8 @@ router.post("/full-create", async (req, res) => {
 
     // Step 2: Create order
     const orderResult = await client.query(
-      `INSERT INTO Orders (user_id, guest_id, transaction_id, payment_type, order_type, total_price, extra_notes, status, order_source,change_due,brand_name,discount)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11,$12)
+      `INSERT INTO Orders (user_id, guest_id, transaction_id, payment_type, order_type, total_price, extra_notes, status, order_source,change_due,brand_name,discount,paid_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11,$12,$13)
        RETURNING order_id`,
       [
         user_id || null,
@@ -523,7 +524,8 @@ router.post("/full-create", async (req, res) => {
         status,
         order_source,
         change_due || 0,
-        clientId, discount
+        clientId, discount,
+        paid_status
       ]
     );
     const order_id = orderResult.rows[0].order_id;
