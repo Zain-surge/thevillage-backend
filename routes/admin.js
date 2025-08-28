@@ -915,9 +915,9 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
    WHERE DATE(o.created_at) BETWEEN $1 AND $2
      AND LOWER(o.order_type) = 'delivery'
      AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
-     AND ($2::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
-     AND ($3::text IS NULL OR o.payment_type = $4)
-     AND ($4::text IS NULL OR o.order_type = $5)
+     AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
+     AND ($4::text IS NULL OR o.payment_type = $4)
+     AND ($5::text IS NULL OR o.order_type = $5)
      AND o.brand_name = $6
    GROUP BY COALESCE(u.postal_code, g.postal_code)
    ORDER BY delivery_count DESC
