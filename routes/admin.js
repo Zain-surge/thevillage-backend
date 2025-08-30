@@ -91,8 +91,7 @@ router.get("/paidouts/today", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch today's paidouts" });
   }
 });
-
-// Get all cancelled orders
+// Get all cancelled orders with merged user/guest details
 router.get("/orders/cancelled", async (req, res) => {
   const clientId = req.headers["x-client-id"];
   if (!clientId) {
@@ -101,11 +100,30 @@ router.get("/orders/cancelled", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT *
-       FROM orders
-       WHERE brand_name = $1
-         AND status = 'cancelled'
-         AND payment_type = 'Card'`,
+      `
+      SELECT 
+        o.order_id,
+        o.transaction_id,
+        o.total_price,
+        o.created_at,
+        o.payment_type,
+        o.status,
+        COALESCE(u.user_id, g.guest_id) AS customer_id,
+        COALESCE(u.name, g.name) AS customer_name,
+        COALESCE(u.email, g.email) AS customer_email,
+        COALESCE(u.phone_number, g.phone_number) AS customer_phone,
+        COALESCE(u.street_address, g.street_address) AS customer_address,
+        COALESCE(u.city, g.city) AS customer_city,
+        COALESCE(u.county, g.county) AS customer_county,
+        COALESCE(u.postal_code, g.postal_code) AS customer_postal
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.user_id
+      LEFT JOIN guests g ON o.guest_id = g.guest_id
+      WHERE o.brand_name = $1
+        AND o.status = 'cancelled'
+        AND o.payment_type = 'Card'
+      ORDER BY o.created_at DESC
+      `,
       [clientId]
     );
 
@@ -119,8 +137,6 @@ router.get("/orders/cancelled", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch cancelled orders" });
   }
 });
-
-
 
 
 
