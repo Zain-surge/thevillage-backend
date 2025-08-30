@@ -97,5 +97,42 @@ router.get("/unavailable-items", async (req, res) => {
   }
 });
 
+// Add new item
+router.post("/add-items", async (req, res) => {
+  const clientId = req.headers["x-client-id"]; // brand_name
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
+  try {
+    const { item_name, type, description, price, toppings } = req.body;
+
+    if (!item_name || !type || !price) {
+      return res.status(400).json({ error: "item_name, type, and price are required" });
+    }
+
+    // Insert into DB
+    const result = await pool.query(
+      `INSERT INTO items (item_name, type, description, availability, price_options, toppings, brand_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING item_id, item_name, type, description, availability, price_options, toppings, brand_name`,
+      [
+        item_name,
+        type,
+        description || "",
+        true, // default availability
+        JSON.stringify({ default: price }), // store price inside JSONB
+        JSON.stringify(toppings || []), // toppings as JSONB
+        clientId,
+      ]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("❌ Error adding item:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 
 export default router;

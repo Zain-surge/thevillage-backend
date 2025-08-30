@@ -53,6 +53,7 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
+
 router.post("/update-status", async (req, res) => {
   const { order_id, status, driver_id } = req.body;
 
