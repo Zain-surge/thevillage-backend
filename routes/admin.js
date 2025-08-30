@@ -92,6 +92,35 @@ router.get("/paidouts/today", async (req, res) => {
   }
 });
 
+// Get all cancelled orders
+router.get("/orders/cancelled", async (req, res) => {
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT *
+       FROM orders
+       WHERE brand_name = $1
+         AND status = 'cancelled'
+         AND payment_type = 'Card'`,
+      [clientId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "No cancelled orders found" });
+    }
+
+    res.status(200).json({ orders: result.rows });
+  } catch (error) {
+    console.error("❌ Error fetching cancelled orders:", error);
+    res.status(500).json({ error: "Failed to fetch cancelled orders" });
+  }
+});
+
+
 
 
 
