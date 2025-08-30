@@ -86,7 +86,7 @@ router.get("/unavailable-items", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT item_name, type,availability FROM items WHERE availability = false AND brand_name = $1`,
+      `SELECT item_id,item_name, type,availability FROM items WHERE availability = false AND brand_name = $1`,
       [clientId]
     );
 
