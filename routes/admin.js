@@ -925,18 +925,6 @@ router.get("/sales-report/weekly2/:year/:week", async (req, res) => {
 
     const params = [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId];
 
-    // Simple logger: shows query and params separately
-    console.log("SQL Query:", queryText);
-    console.log("Parameters:", params);
-
-    // Optional: naive interpolation (for debugging only, avoid in production)
-    let debugQuery = queryText;
-    params.forEach((p, i) => {
-      const val = typeof p === "string" ? `'${p}'` : p;
-      debugQuery = debugQuery.replace(`$${i + 1}`, val);
-    });
-    console.log("Debug SQL with values:", debugQuery);
-
     // Execute query
     const deliveriesByPostalCodeQuery = await pool.query(queryText, params);
     // Calculate growth metrics
@@ -1200,6 +1188,29 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
    ORDER BY total_quantity_sold DESC`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
+     const queryText = `
+  SELECT 
+     COALESCE(u.postal_code, g.postal_code) AS postal_code,
+     COUNT(*) AS delivery_count,
+     SUM(o.total_price) AS total_delivery_sales
+   FROM orders o
+   LEFT JOIN users u ON o.user_id = u.user_id
+   LEFT JOIN guests g ON o.guest_id = g.guest_id
+   WHERE DATE(o.created_at) BETWEEN $1 AND $2
+     AND LOWER(o.order_type) = 'delivery'
+     AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
+     AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
+     AND ($4::text IS NULL OR o.payment_type = $4)
+     AND ($5::text IS NULL OR o.order_type = $5)
+     AND o.brand_name = $6
+   GROUP BY COALESCE(u.postal_code, g.postal_code)
+   ORDER BY delivery_count DESC
+`;
+
+    const params = [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId];
+
+    // Execute query
+    const deliveriesByPostalCodeQuery = await pool.query(queryText, params);
 
     // Calculate growth metrics
     const currentMonthSales = parseFloat(totalSales.rows[0].total_sales);
@@ -1233,6 +1244,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
       most_sold_item: mostSoldItem.rows[0] || {},
       most_sold_type: mostSoldType.rows[0] || {},
       most_delivered_postal_code: mostDeliveredPostalCodeQuery.rows[0] || null,
+      deliveries_by_postal_code: deliveriesByPostalCodeQuery.rows, // ✅ New field added
       all_items_sold: allItemsSoldQuery.rows,
     });
   } catch (error) {
