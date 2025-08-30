@@ -729,9 +729,9 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
   }
 });
 
-// Weekly report by any given date
+// Weekly report with week number parameter
 router.get("/sales-report/weekly2/:date", async (req, res) => {
-  const clientId = req.headers["x-client-id"];
+const clientId = req.headers["x-client-id"];
   if (!clientId) {
     return res.status(400).json({ error: "Missing client ID in headers" });
   }
@@ -769,18 +769,15 @@ router.get("/sales-report/weekly2/:date", async (req, res) => {
     const sourceParam = source === "All" || !source ? null : source;
     const paymentParam = payment === "All" || !payment ? null : payment;
     const orderTypeParam = orderType === "All" || !orderType ? null : orderType;
-
-    // ✅ Then reuse ALL the queries you already have 
-    // Just replace [fromDate, toDate, ...] wherever week-based params were used.
-
+    // Total sales
     const totalSales = await pool.query(
       `SELECT COALESCE(SUM(total_price), 0) AS total_sales 
        FROM orders 
        WHERE DATE(created_at) BETWEEN $1 AND $2
        AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
-       AND ($4::text IS NULL OR payment_type = $4)
-       AND ($5::text IS NULL OR order_type = $5)
-       AND brand_name = $6`,
+    AND ($4::text IS NULL OR payment_type = $4)
+    AND ($5::text IS NULL OR order_type = $5)
+    AND brand_name = $6`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
 
@@ -789,15 +786,181 @@ router.get("/sales-report/weekly2/:date", async (req, res) => {
        FROM orders 
        WHERE DATE(created_at) BETWEEN $1 AND $2
        AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
-       AND ($4::text IS NULL OR payment_type = $4)
-       AND ($5::text IS NULL OR order_type = $5)
-       AND brand_name = $6`,
+    AND ($4::text IS NULL OR payment_type = $4)
+    AND ($5::text IS NULL OR order_type = $5)
+    AND brand_name = $6`,
       [lastWeekFromDate, lastWeekToDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
 
-    // ... keep the rest of your queries (totalOrders, byPayment, byOrderType, mostSoldItem, etc.)
-    // unchanged since they already depend on fromDate & toDate.
+    // Total orders
+    const totalOrders = await pool.query(
+      `SELECT COUNT(*) AS total_orders 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2
+       AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR payment_type = $4)
+    AND ($5::text IS NULL OR order_type = $5)
+    AND brand_name = $6`,
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
+    );
 
+    // Sales by payment type
+    const byPayment = await pool.query(
+      `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2 
+       AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR payment_type = $4)
+    AND ($5::text IS NULL OR order_type = $5)
+    AND brand_name = $6
+       GROUP BY payment_type`,
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
+    );
+
+    // Sales by order type
+    const byOrderType = await pool.query(
+      `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2 
+       AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR payment_type = $4)
+    AND ($5::text IS NULL OR order_type = $5)
+    AND brand_name = $6
+       GROUP BY order_type`,
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
+    );
+
+    // Sales by order source
+    const byOrderSource = await pool.query(
+      `SELECT COALESCE(order_source, 'Unknown') AS source, COUNT(*) AS count, SUM(total_price) AS total 
+       FROM orders 
+       WHERE DATE(created_at) BETWEEN $1 AND $2 
+       AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR payment_type = $4)
+    AND ($5::text IS NULL OR order_type = $5)
+    AND brand_name = $6
+       GROUP BY COALESCE(order_source, 'Unknown')`,
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
+    );
+
+    // Most sold item
+    const mostSoldItem = await pool.query(
+      `SELECT 
+         oi.item_id,
+         i.item_name,
+         SUM(oi.quantity) AS quantity_sold,
+         SUM(oi.total_price) AS total_sales
+       FROM order_items oi
+       JOIN items i ON oi.item_id = i.item_id
+       JOIN orders o ON oi.order_id = o.order_id
+       WHERE DATE(o.created_at) BETWEEN $1 AND $2
+       AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR o.payment_type = $4)
+    AND ($5::text IS NULL OR o.order_type = $5)
+    AND o.brand_name = $6
+       GROUP BY oi.item_id, i.item_name
+       ORDER BY quantity_sold DESC
+       LIMIT 1`,
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
+    );
+
+    // Most sold type
+    const mostSoldType = await pool.query(
+      `SELECT 
+         i.type,
+         SUM(oi.quantity) AS quantity_sold,
+         SUM(oi.total_price) AS total_sales
+       FROM order_items oi
+       JOIN items i ON oi.item_id = i.item_id
+       JOIN orders o ON oi.order_id = o.order_id
+       WHERE DATE(o.created_at) BETWEEN $1 AND $2
+       AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
+    AND ($4::text IS NULL OR o.payment_type = $4)
+    AND ($5::text IS NULL OR o.order_type = $5)
+    AND o.brand_name = $6
+       GROUP BY i.type
+       ORDER BY quantity_sold DESC
+       LIMIT 1`,
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
+    );
+
+    // Most delivered postal code (only for delivery orders and when no orderType filter or orderType is 'delivery')
+    let mostDeliveredPostalCodeQuery = { rows: [null] };
+    if (orderTypeParam === null || orderTypeParam.toLowerCase() === 'delivery') {
+      mostDeliveredPostalCodeQuery = await pool.query(
+        `SELECT 
+       COALESCE(u.postal_code, g.postal_code) AS postal_code,
+       COUNT(*) AS delivery_count,
+       SUM(o.total_price) AS total_delivery_sales,
+       COUNT(CASE WHEN o.user_id IS NOT NULL THEN 1 END) AS registered_user_deliveries,
+       COUNT(CASE WHEN o.guest_id IS NOT NULL THEN 1 END) AS guest_deliveries
+     FROM orders o
+     LEFT JOIN users u ON o.user_id = u.user_id
+     LEFT JOIN guests g ON o.guest_id = g.guest_id
+     WHERE DATE(o.created_at) BETWEEN $1 AND $2
+       AND LOWER(o.order_type) = 'delivery'
+       AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
+       AND ($4::text IS NULL OR o.payment_type = $4)
+       AND o.brand_name = $5
+       AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
+     GROUP BY COALESCE(u.postal_code, g.postal_code)
+     ORDER BY delivery_count DESC
+     LIMIT 1`,
+        [fromDate, toDate, sourceParam, paymentParam, clientId]
+      );
+    }
+
+    // All items sold in the week with detailed pricing
+    const allItemsSoldQuery = await pool.query(
+      `SELECT 
+     oi.item_id,
+     i.item_name,
+     i.type,
+     i.subtype,
+     SUM(oi.quantity) AS total_quantity_sold,
+     ROUND(AVG(oi.total_price / oi.quantity), 2) AS average_unit_price,
+     ROUND(MIN(oi.total_price / oi.quantity), 2) AS min_unit_price,
+     ROUND(MAX(oi.total_price / oi.quantity), 2) AS max_unit_price,
+     SUM(oi.total_price) AS total_item_sales,
+     COUNT(DISTINCT oi.order_id) AS orders_containing_item,
+     ROUND((SUM(oi.total_price) / (SELECT COALESCE(SUM(total_price), 1) FROM orders WHERE DATE(created_at) BETWEEN $1 AND $2 AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3) AND ($4::text IS NULL OR payment_type = $4) AND ($5::text IS NULL OR order_type = $5)) * 100), 2) AS percentage_of_total_sales
+   FROM order_items oi
+   JOIN items i ON oi.item_id = i.item_id
+   JOIN orders o ON oi.order_id = o.order_id
+   WHERE DATE(o.created_at) BETWEEN $1 AND $2
+   AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
+   AND ($4::text IS NULL OR o.payment_type = $4)
+   AND ($5::text IS NULL OR o.order_type = $5)
+   AND o.brand_name = $6
+   GROUP BY oi.item_id, i.item_name, i.type, i.subtype
+   ORDER BY total_quantity_sold DESC`,
+      [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId
+      ]
+    );
+    const queryText = `
+  SELECT 
+     COALESCE(u.postal_code, g.postal_code) AS postal_code,
+     COUNT(*) AS delivery_count,
+     SUM(o.total_price) AS total_delivery_sales
+   FROM orders o
+   LEFT JOIN users u ON o.user_id = u.user_id
+   LEFT JOIN guests g ON o.guest_id = g.guest_id
+   WHERE DATE(o.created_at) BETWEEN $1 AND $2
+     AND LOWER(o.order_type) = 'delivery'
+     AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
+     AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
+     AND ($4::text IS NULL OR o.payment_type = $4)
+     AND ($5::text IS NULL OR o.order_type = $5)
+     AND o.brand_name = $6
+   GROUP BY COALESCE(u.postal_code, g.postal_code)
+   ORDER BY delivery_count DESC
+`;
+
+    const params = [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId];
+
+    // Execute query
+    const deliveriesByPostalCodeQuery = await pool.query(queryText, params);
+    // Calculate growth metrics
     const currentWeekSales = parseFloat(totalSales.rows[0].total_sales);
     const lastWeekSales = parseFloat(totalSalesLastWeek.rows[0].total_sales);
     const salesIncrease = currentWeekSales - lastWeekSales;
@@ -809,20 +972,29 @@ router.get("/sales-report/weekly2/:date", async (req, res) => {
 
     res.status(200).json({
       period: {
+        year: yearNum,
+        week: weekNum,
         from: fromDate,
-        to: toDate,
+        to: toDate
       },
       total_sales_amount: totalSales.rows[0].total_sales,
+      total_orders_placed: parseInt(totalOrders.rows[0].total_orders),
       sales_growth_percentage: parseFloat(growth.toFixed(2)),
       sales_increase: parseFloat(salesIncrease.toFixed(2)),
-      // add other fields like totalOrders, byPayment, mostSoldItem, etc.
+      sales_by_payment_type: byPayment.rows,
+      sales_by_order_type: byOrderType.rows,
+      sales_by_order_source: byOrderSource.rows,
+      most_sold_item: mostSoldItem.rows[0] || {},
+      most_sold_type: mostSoldType.rows[0] || {},
+      most_delivered_postal_code: mostDeliveredPostalCodeQuery.rows[0] || null,
+      deliveries_by_postal_code: deliveriesByPostalCodeQuery.rows, // ✅ New field added
+      all_items_sold: allItemsSoldQuery.rows,
     });
   } catch (error) {
     console.error("❌ Error generating weekly sales report:", error);
     res.status(500).json({ error: "Failed to generate weekly sales report" });
   }
 });
-
 
 // Monthly report with month name parameter
 router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
