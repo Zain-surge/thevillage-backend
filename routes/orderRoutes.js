@@ -525,7 +525,8 @@ router.post("/full-create", async (req, res) => {
         status,
         order_source,
         change_due || 0,
-        clientId, discount,
+        clientId, 
+        discount,
         paid_status
       ]
     );
@@ -543,9 +544,9 @@ router.post("/full-create", async (req, res) => {
       `INSERT INTO Order_Items (order_id, item_id, quantity, description, total_price, brand_name)
    VALUES ${insertValues}`
     );
-
+    console.log("CUSTOMER EMAIL", customer_email)
     await client.query("COMMIT");
-    if (customer_email && transporter) {
+    if (customer_email && customer_email!='N/A' && transporter) {
       try {
         // Prepare order data for email template
         const orderData = {
@@ -672,12 +673,16 @@ router.post("/full-create", async (req, res) => {
 </html>`;
 
         // Send email
-        await transporter.sendMail({
+        if(customer_email)
+        {
+            await transporter.sendMail({
           from: process.env.EMAIL_USER,
           to: customer_email,
           subject: subject,
           html: emailBody,
         });
+        }
+        
 
         console.log(`✅ Email sent successfully to ${customer_email}`);
       } catch (emailError) {

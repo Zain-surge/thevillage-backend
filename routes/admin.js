@@ -972,10 +972,8 @@ const clientId = req.headers["x-client-id"];
 
     res.status(200).json({
       period: {
-        year: yearNum,
-        week: weekNum,
         from: fromDate,
-        to: toDate
+        to: toDate,
       },
       total_sales_amount: totalSales.rows[0].total_sales,
       total_orders_placed: parseInt(totalOrders.rows[0].total_orders),
