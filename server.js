@@ -193,7 +193,7 @@ async function getOrderDetails(orderId) {
 
     const orderQuery = `
       SELECT 
-        o.order_id, o.payment_type,o.transaction_id, o.order_type, o.total_price, o.extra_notes, o.order_source,o.change_due,o.status,o.driver_id,o.brand_name,
+        o.order_id, o.payment_type,o.transaction_id, o.order_type, o.total_price, o.extra_notes, o.order_source,o.change_due,o.status,o.driver_id,o.brand_name,o.paid_status,
         COALESCE(u.name, g.name) AS customer_name,
           COALESCE(u.email, g.email) AS customer_email,
           COALESCE(u.phone_number, g.phone_number) AS phone_number,
