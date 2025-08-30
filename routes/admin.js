@@ -127,9 +127,6 @@ router.get("/orders/cancelled", async (req, res) => {
       [clientId]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "No cancelled orders found" });
-    }
 
     res.status(200).json({ orders: result.rows });
   } catch (error) {
