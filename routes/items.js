@@ -77,4 +77,25 @@ router.put("/set-availability", async (req, res) => {
   }
 });
 
+// Get all unavailable items for a brand
+router.get("/unavailable-items", async (req, res) => {
+  const clientId = req.headers["x-client-id"]; // brand_name
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT item_name, type,availability FROM items WHERE availability = false AND brand_name = $1`,
+      [clientId]
+    );
+
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching unavailable items:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
 export default router;
