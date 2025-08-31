@@ -40,6 +40,8 @@ router.get("/items", async (req, res) => {
   }
 });
 
+
+
 // Set item availability (true/false)
 router.put("/set-availability", async (req, res) => {
   console.log("AVAILABILITY");
@@ -76,6 +78,50 @@ router.put("/set-availability", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+// Set order paid_status (true/false)
+router.put("/set-paid-status", async (req, res) => {
+  console.log("PAID STATUS UPDATE");
+
+  const { order_id, paid_status } = req.body;
+
+  // Validate headers (if you want to tie orders to a brand/client like items)
+  const clientId = req.headers["x-client-id"];
+  if (!clientId) {
+    return res.status(400).json({ error: "Missing client ID in headers" });
+  }
+
+  // Input validation
+  if (typeof order_id === "undefined" || typeof paid_status !== "boolean") {
+    return res.status(400).json({
+      error: "Invalid input. 'order_id' and 'paid_status' (boolean) are required.",
+    });
+  }
+
+  try {
+    // Update order
+    const result = await pool.query(
+      `UPDATE orders 
+       SET paid_status = $1 
+       WHERE order_id = $2 AND brand_name = $3 
+       RETURNING *`,
+      [paid_status, order_id, clientId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    res.status(200).json({
+      message: "Order paid_status updated successfully",
+      order: result.rows[0],
+    });
+  } catch (err) {
+    console.error("❌ Error updating paid_status:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 
 // Get all unavailable items for a brand
 router.get("/unavailable-items", async (req, res) => {
