@@ -199,7 +199,7 @@ client.on("notification", async (msg) => {
     console.log("🔁 Order status or driver change:", change);
     io.emit("order_status_or_driver_changed", change);
   }
-  if (msg.channel === "shop_time_changed_channel") {
+  if (msg.channel === "shop_time_changed") {
     const payload = JSON.parse(msg.payload);
     console.log("🕒 Shop open/close time updated:", payload);
 
