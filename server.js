@@ -151,7 +151,7 @@ client.query("LISTEN item_availability_changed", (err) => {
     console.log("✅ Listening to PostgreSQL channel: item_availability_changed");
   }
 });
-client.query("LISTEN shop_time_changed_channel", (err) => {
+client.query("LISTEN shop_time_changed", (err) => {
   if (err) {
     console.error("❌ Error listening to shop_time_changed_channel:", err);
   } else {
