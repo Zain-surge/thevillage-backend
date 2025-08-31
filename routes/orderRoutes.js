@@ -916,6 +916,7 @@ router.get("/track/:order_id", async (req, res) => {
           COALESCE(u.postal_code, g.postal_code) AS postal_code,
 
           i.item_name,
+          i.item_id,
           i.type AS item_type,
           oi.quantity,
           oi.description AS item_description,
