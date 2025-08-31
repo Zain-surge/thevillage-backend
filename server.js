@@ -144,6 +144,20 @@ client.query("LISTEN order_status_or_driver_change_channel", (err) => {
     );
   }
 });
+client.query("LISTEN item_availability_changed", (err) => {
+  if (err) {
+    console.error("❌ Error listening to item_availability_changed:", err);
+  } else {
+    console.log("✅ Listening to PostgreSQL channel: item_availability_changed");
+  }
+});
+client.query("LISTEN shop_time_changed_channel", (err) => {
+  if (err) {
+    console.error("❌ Error listening to shop_time_changed_channel:", err);
+  } else {
+    console.log("✅ Listening to PostgreSQL channel: shop_time_changed_channel");
+  }
+});
 
 client.on("notification", async (msg) => {
   if (msg.channel === "new_order_channel") {
@@ -185,7 +199,23 @@ client.on("notification", async (msg) => {
     console.log("🔁 Order status or driver change:", change);
     io.emit("order_status_or_driver_changed", change);
   }
+  if (msg.channel === "shop_time_changed_channel") {
+    const payload = JSON.parse(msg.payload);
+    console.log("🕒 Shop open/close time updated:", payload);
+
+    // Emit to all connected clients
+    io.emit("shop_time_changed", payload);
+  }
+  if (msg.channel === "item_availability_changed") {
+    const payload = JSON.parse(msg.payload);
+    console.log("📦 Item availability changed:", payload);
+
+    // Emit to all connected clients
+    io.emit("item_availability_changed", payload);
+  }
+
 });
+
 
 async function getOrderDetails(orderId) {
   try {
