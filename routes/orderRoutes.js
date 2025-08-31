@@ -978,6 +978,7 @@ router.get("/track/:order_id", async (req, res) => {
 
       ordersMap[row.order_id].items.push({
         item_name: row.item_name,
+        item_id:row.item_id,
         item_type: row.item_type,
         quantity: row.quantity,
         description: row.item_description,
