@@ -31,7 +31,7 @@ router.get("/items", async (req, res) => {
       subType: item.subtype,
       availability: item.availability,
     }));
-    // console.log(items);
+    console.log(items);
 
     res.json(items);
   } catch (err) {
