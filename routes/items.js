@@ -14,7 +14,7 @@ router.get("/items", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT item_id, item_name, description, price_options, type, toppings, cheese, sauces, subtype, availability  
+      `SELECT item_id, item_name, description, price_options, type, toppings, cheese, sauces, subtype, availability ,website 
        FROM Items 
        WHERE brand_name = $1`, 
       [clientId]
@@ -30,8 +30,8 @@ router.get("/items", async (req, res) => {
       sauces: item.sauces,
       subType: item.subtype,
       availability: item.availability,
+      website:item.website,
     }));
-    console.log(items);
 
     res.json(items);
   } catch (err) {
@@ -132,7 +132,7 @@ router.get("/unavailable-items", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT item_id,item_name, type,availability FROM items WHERE availability = false AND brand_name = $1`,
+      `SELECT item_id,item_name, type,availability FROM items WHERE availability = false AND website=true AND brand_name = $1`,
       [clientId]
     );
 
@@ -151,7 +151,7 @@ router.post("/add-items", async (req, res) => {
   }
 
   try {
-    const { item_name, type, description, price, toppings } = req.body;
+    const { item_name, type, description, price, toppings , website} = req.body;
 
     if (!item_name || !type || !price) {
       return res.status(400).json({ error: "item_name, type, and price are required" });
@@ -159,9 +159,9 @@ router.post("/add-items", async (req, res) => {
 
     // Insert into DB
     const result = await pool.query(
-      `INSERT INTO items (item_name, type, description, availability, price_options, toppings, brand_name)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING item_id, item_name, type, description, availability, price_options, toppings, brand_name`,
+      `INSERT INTO items (item_name, type, description, availability, price_options, toppings, brand_name,website)
+       VALUES ($1, $2, $3, $4, $5, $6, $7,$8)
+       RETURNING item_id, item_name, type, description, availability, price_options, toppings, brand_name, website`,
       [
         item_name,
         type,
@@ -170,6 +170,7 @@ router.post("/add-items", async (req, res) => {
         JSON.stringify({ default: price }), // store price inside JSONB
         JSON.stringify(toppings || []), // toppings as JSONB
         clientId,
+        website,
       ]
     );
 
