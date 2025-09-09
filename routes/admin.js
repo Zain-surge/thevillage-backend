@@ -282,7 +282,8 @@ router.get("/sales-report/today", async (req, res) => {
         AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2)
     AND ($3::text IS NULL OR payment_type = $3)
     AND ($4::text IS NULL OR order_type = $4)
-    AND brand_name = $5`,
+    AND brand_name = $5
+    AND status!='cancelled'`,
       [todayStr, sourceParam, paymentParam, orderTypeParam, clientId]
     );
     const totalSalesLastWeek = await pool.query(
@@ -292,7 +293,8 @@ router.get("/sales-report/today", async (req, res) => {
         AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2)
     AND ($3::text IS NULL OR payment_type = $3)
     AND ($4::text IS NULL OR order_type = $4)
-    AND brand_name = $5`,
+    AND brand_name = $5
+    AND status!='cancelled'`,
       [lastWeekStr, sourceParam, paymentParam, orderTypeParam, clientId]
     );
 
@@ -305,6 +307,7 @@ router.get("/sales-report/today", async (req, res) => {
     AND ($3::text IS NULL OR payment_type = $3)
     AND ($4::text IS NULL OR order_type = $4) 
     AND brand_name = $5
+    AND status!='cancelled'
        GROUP BY payment_type`,
       [todayStr, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -318,6 +321,7 @@ router.get("/sales-report/today", async (req, res) => {
     AND ($3::text IS NULL OR payment_type = $3)
     AND ($4::text IS NULL OR order_type = $4)
     AND brand_name = $5
+    AND status!='cancelled'
        GROUP BY order_type`,
       [todayStr, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -331,6 +335,7 @@ router.get("/sales-report/today", async (req, res) => {
     AND ($3::text IS NULL OR payment_type = $3)
     AND ($4::text IS NULL OR order_type = $4)
     AND brand_name = $5
+    AND status!='cancelled'
        GROUP BY COALESCE(order_source, 'Unknown')`,
       [todayStr, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -350,6 +355,7 @@ router.get("/sales-report/today", async (req, res) => {
     AND ($3::text IS NULL OR o.payment_type = $3)
     AND ($4::text IS NULL OR o.order_type = $4)
     AND o.brand_name = $5
+    AND o.status!='cancelled'
        GROUP BY oi.item_id, i.item_name
        ORDER BY quantity_sold DESC
        LIMIT 1`,
@@ -371,6 +377,7 @@ router.get("/sales-report/today", async (req, res) => {
     AND ($3::text IS NULL OR o.payment_type = $3)
     AND ($4::text IS NULL OR o.order_type = $4)
     AND o.brand_name = $5
+    AND o.status!='cancelled'
        GROUP BY COALESCE(u.postal_code, g.postal_code)
        ORDER BY delivery_count DESC
        LIMIT 1`,
@@ -396,6 +403,7 @@ router.get("/sales-report/today", async (req, res) => {
         AND ($3::text IS NULL OR o.payment_type = $3)
         AND ($4::text IS NULL OR o.order_type = $4)
         AND o.brand_name = $5
+        AND o.status!='cancelled'
        GROUP BY oi.item_id, i.item_name, i.type, i.subtype
        ORDER BY total_quantity_sold DESC`,
       [todayStr, sourceParam, paymentParam, orderTypeParam, clientId]
@@ -426,6 +434,7 @@ router.get("/sales-report/today", async (req, res) => {
          AND ($3::text IS NULL OR o.payment_type = $3)
          AND ($4::text IS NULL OR o.order_type = $4)
          AND o.brand_name = $5
+         AND o.status!='cancelled'
        GROUP BY COALESCE(u.postal_code, g.postal_code)
        ORDER BY delivery_count DESC`,
       [todayStr, sourceParam, paymentParam, orderTypeParam, clientId]
@@ -789,7 +798,8 @@ const clientId = req.headers["x-client-id"];
        AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
-    AND brand_name = $6`,
+    AND brand_name = $6
+    AND status!='cancelled'`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
 
@@ -800,7 +810,8 @@ const clientId = req.headers["x-client-id"];
        AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
-    AND brand_name = $6`,
+    AND brand_name = $6
+    AND status!='cancelled'`,
       [lastWeekFromDate, lastWeekToDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
 
@@ -812,7 +823,8 @@ const clientId = req.headers["x-client-id"];
        AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
-    AND brand_name = $6`,
+    AND brand_name = $6
+    AND status!='cancelled'`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
 
@@ -825,6 +837,7 @@ const clientId = req.headers["x-client-id"];
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
     AND brand_name = $6
+    AND status!='cancelled'
        GROUP BY payment_type`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -838,6 +851,7 @@ const clientId = req.headers["x-client-id"];
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
     AND brand_name = $6
+    AND status!='cancelled'
        GROUP BY order_type`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -851,6 +865,7 @@ const clientId = req.headers["x-client-id"];
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
     AND brand_name = $6
+    AND status!='cancelled'
        GROUP BY COALESCE(order_source, 'Unknown')`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -870,6 +885,7 @@ const clientId = req.headers["x-client-id"];
     AND ($4::text IS NULL OR o.payment_type = $4)
     AND ($5::text IS NULL OR o.order_type = $5)
     AND o.brand_name = $6
+    AND o.status!='cancelled'
        GROUP BY oi.item_id, i.item_name
        ORDER BY quantity_sold DESC
        LIMIT 1`,
@@ -890,6 +906,7 @@ const clientId = req.headers["x-client-id"];
     AND ($4::text IS NULL OR o.payment_type = $4)
     AND ($5::text IS NULL OR o.order_type = $5)
     AND o.brand_name = $6
+    AND o.status!='cancelled'
        GROUP BY i.type
        ORDER BY quantity_sold DESC
        LIMIT 1`,
@@ -914,6 +931,7 @@ const clientId = req.headers["x-client-id"];
        AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
        AND ($4::text IS NULL OR o.payment_type = $4)
        AND o.brand_name = $5
+       AND o.status!='cancelled'
        AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
      GROUP BY COALESCE(u.postal_code, g.postal_code)
      ORDER BY delivery_count DESC
@@ -944,6 +962,7 @@ const clientId = req.headers["x-client-id"];
    AND ($4::text IS NULL OR o.payment_type = $4)
    AND ($5::text IS NULL OR o.order_type = $5)
    AND o.brand_name = $6
+   AND o.status!='cancelled'
    GROUP BY oi.item_id, i.item_name, i.type, i.subtype
    ORDER BY total_quantity_sold DESC`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId
@@ -964,6 +983,7 @@ const clientId = req.headers["x-client-id"];
      AND ($4::text IS NULL OR o.payment_type = $4)
      AND ($5::text IS NULL OR o.order_type = $5)
      AND o.brand_name = $6
+     AND o.status!='cancelled'
    GROUP BY COALESCE(u.postal_code, g.postal_code)
    ORDER BY delivery_count DESC
 `;
@@ -1071,7 +1091,8 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
        AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
-    AND brand_name = $6`,
+    AND brand_name = $6
+    AND status!='cancelled'`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
 
@@ -1083,7 +1104,8 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
        AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
-    AND brand_name = $6`,
+    AND brand_name = $6
+    AND status!='cancelled'`,
       [lastMonthFromDate, lastMonthToDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
 
@@ -1095,7 +1117,8 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
        AND ($3::text IS NULL OR COALESCE(order_source, 'Unknown') = $3)
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
-    AND brand_name = $6`,
+    AND brand_name = $6
+    AND status!='cancelled'`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
 
@@ -1108,6 +1131,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
     AND brand_name = $6
+    AND status!='cancelled'
        GROUP BY payment_type`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -1121,6 +1145,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
     AND brand_name = $6
+    AND status!='cancelled'
        GROUP BY order_type`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -1134,6 +1159,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
     AND ($4::text IS NULL OR payment_type = $4)
     AND ($5::text IS NULL OR order_type = $5)
     AND brand_name = $6
+    AND status!='cancelled'
        GROUP BY COALESCE(order_source, 'Unknown')`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -1153,6 +1179,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
     AND ($4::text IS NULL OR o.payment_type = $4)
     AND ($5::text IS NULL OR o.order_type = $5)
     AND o.brand_name = $6
+    AND o.status!='cancelled'
        GROUP BY oi.item_id, i.item_name
        ORDER BY quantity_sold DESC
        LIMIT 1`,
@@ -1173,6 +1200,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
     AND ($4::text IS NULL OR o.payment_type = $4)
     AND ($5::text IS NULL OR o.order_type = $5)
     AND o.brand_name = $6
+    AND o.status!='cancelled'
        GROUP BY i.type
        ORDER BY quantity_sold DESC
        LIMIT 1`,
@@ -1197,6 +1225,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
        AND ($3::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $3)
        AND ($4::text IS NULL OR o.payment_type = $4)
        AND o.brand_name = $5
+       AND o.status!='cancelled'
        AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
      GROUP BY COALESCE(u.postal_code, g.postal_code)
      ORDER BY delivery_count DESC
@@ -1227,6 +1256,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
    AND ($4::text IS NULL OR o.payment_type = $4)
    AND ($5::text IS NULL OR o.order_type = $5)
    AND o.brand_name = $6
+   AND o.status!='cancelled'
    GROUP BY oi.item_id, i.item_name, i.type, i.subtype
    ORDER BY total_quantity_sold DESC`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
@@ -1246,6 +1276,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
      AND ($4::text IS NULL OR o.payment_type = $4)
      AND ($5::text IS NULL OR o.order_type = $5)
      AND o.brand_name = $6
+     AND o.status!='cancelled'
    GROUP BY COALESCE(u.postal_code, g.postal_code)
    ORDER BY delivery_count DESC
 `;
