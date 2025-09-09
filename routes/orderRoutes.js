@@ -53,7 +53,6 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
-
 router.post("/update-status", async (req, res) => {
   const { order_id, status, driver_id } = req.body;
 
@@ -62,11 +61,12 @@ router.post("/update-status", async (req, res) => {
     return res.status(400).json({ error: "Missing client ID in headers" });
   }
 
-
   try {
     // Update order status in DB
     const updateResult = await pool.query(
-      `UPDATE Orders SET status = $1, driver_id = $2 WHERE order_id = $3 AND brand_name=$4
+      `UPDATE Orders 
+       SET status = $1, driver_id = $2 
+       WHERE order_id = $3 AND brand_name=$4
        RETURNING order_type, user_id, guest_id, driver_id`,
       [status, driver_id, order_id, clientId]
     );
@@ -82,120 +82,85 @@ router.post("/update-status", async (req, res) => {
       driver_id: updatedDriverId,
     } = updateResult.rows[0];
 
-    // Only proceed with email if status is green
-    if (status === "green" && updatedDriverId) {
-      // Get complete order details for email
-      const orderDetailsResult = await pool.query(
-        `
-        SELECT
-          o.order_id,
-          o.payment_type,
-          o.transaction_id,
-          o.order_type,
-          o.total_price AS order_total_price,
-          o.extra_notes AS order_extra_notes,
-          o.status,
-          o.created_at,
-          o.change_due,
-          o.order_source,
-          
-          -- Driver details
-          d.id AS id,
-          d.name AS name,
-          d.phone_number AS phone_number,
-          d.email AS email,
-          
-          -- Customer details
-          COALESCE(u.name, g.name) AS customer_name,
-          COALESCE(u.email, g.email) AS customer_email,
-          COALESCE(u.phone_number, g.phone_number) AS phone_number,
-          COALESCE(u.street_address, g.street_address) AS street_address,
-          COALESCE(u.city, g.city) AS city,
-          COALESCE(u.county, g.county) AS county,
-          COALESCE(u.postal_code, g.postal_code) AS postal_code,
-          
-          -- Items
-          i.item_name,
-          i.type AS type,
-          oi.quantity,
-          oi.description AS description,
-          oi.total_price AS total_price
-        FROM Orders o
-        LEFT JOIN Users u ON o.user_id = u.user_id
-        LEFT JOIN Guests g ON o.guest_id = g.guest_id
-        LEFT JOIN Drivers d ON o.driver_id = d.id
-        JOIN Order_Items oi ON o.order_id = oi.order_id
-        JOIN Items i ON oi.item_id = i.item_id
-        WHERE o.order_id = $1
-        AND o.brand_name=$2
-        `,
-        [order_id, clientId]
-      );
+    // Get complete order details for email (for both green and blue statuses)
+    const orderDetailsResult = await pool.query(
+      `
+      SELECT
+        o.order_id,
+        o.payment_type,
+        o.transaction_id,
+        o.order_type,
+        o.total_price AS order_total_price,
+        o.extra_notes AS order_extra_notes,
+        o.status,
+        o.created_at,
+        o.change_due,
+        o.order_source,
+        
+        -- Driver details
+        d.id AS driver_id,
+        d.name AS driver_name,
+        d.phone_number AS driver_phone,
+        d.email AS driver_email,
+        
+        -- Customer details
+        COALESCE(u.name, g.name) AS customer_name,
+        COALESCE(u.email, g.email) AS customer_email,
+        COALESCE(u.phone_number, g.phone_number) AS phone_number,
+        COALESCE(u.street_address, g.street_address) AS street_address,
+        COALESCE(u.city, g.city) AS city,
+        COALESCE(u.county, g.county) AS county,
+        COALESCE(u.postal_code, g.postal_code) AS postal_code,
+        
+        -- Items
+        i.item_name,
+        i.type AS type,
+        oi.quantity,
+        oi.description AS description,
+        oi.total_price AS total_price
+      FROM Orders o
+      LEFT JOIN Users u ON o.user_id = u.user_id
+      LEFT JOIN Guests g ON o.guest_id = g.guest_id
+      LEFT JOIN Drivers d ON o.driver_id = d.id
+      JOIN Order_Items oi ON o.order_id = oi.order_id
+      JOIN Items i ON oi.item_id = i.item_id
+      WHERE o.order_id = $1
+      AND o.brand_name=$2
+      `,
+      [order_id, clientId]
+    );
 
-      const orderRows = orderDetailsResult.rows;
+    const orderRows = orderDetailsResult.rows;
 
-      if (orderRows.length > 0) {
-        const customer_email = orderRows[0].customer_email;
+    if (orderRows.length > 0) {
+      const customer_email = orderRows[0].customer_email;
 
-        if (customer_email) {
-          // Build order details for email
-          const orderData = {
-            order_id: orderRows[0].order_id,
-            payment_type: orderRows[0].payment_type,
-            transaction_id: orderRows[0].transaction_id,
-            order_type: orderRows[0].order_type,
-            total_price: orderRows[0].order_total_price,
-            extra_notes: orderRows[0].order_extra_notes,
-            status: orderRows[0].status,
-            created_at: orderRows[0].created_at,
-            change_due: orderRows[0].change_due,
-            order_source: orderRows[0].order_source,
-            customer_name: orderRows[0].customer_name,
-            customer_email: orderRows[0].customer_email,
-            phone_number: orderRows[0].phone_number,
-            street_address: orderRows[0].street_address,
-            city: orderRows[0].city,
-            county: orderRows[0].county,
-            postal_code: orderRows[0].postal_code,
-            driver: {
-              name: orderRows[0].driver_name,
-              phone: orderRows[0].driver_phone,
-              email: orderRows[0].driver_email,
-            },
-            items: []
-          };
+      if (customer_email) {
+        // Build order data (common)
+        const orderData = {
+          order_id: orderRows[0].order_id,
+          order_type: orderRows[0].order_type,
+          total_price: orderRows[0].order_total_price,
+          created_at: orderRows[0].created_at,
+          customer_name: orderRows[0].customer_name,
+          customer_email: orderRows[0].customer_email,
+          items: orderRows.map((row) => ({
+            item_name: row.item_name,
+            item_type: row.type,
+            quantity: row.quantity,
+            item_description: row.description,
+            item_total_price: row.total_price,
+          })),
+        };
 
-          // Group items
-          orderRows.forEach((row) => {
-            orderData.items.push({
-              item_name: row.item_name,
-              item_type: row.type,
-              quantity: row.quantity,
-              item_description: row.description,
-              item_total_price: row.total_price,
-            });
-          });
-
-          // Create detailed email content
+        // ===================== STATUS GREEN EMAIL =====================
+        if (status === "green" && updatedDriverId) {
           const subject =
             order_type === "delivery"
               ? `🚗 Your Order #${order_id} is On Its Way!`
               : `🎉 Your Order #${order_id} is Ready for Pickup!`;
 
-          // const itemsList = orderData.items
-          //   .map(
-          //     (item) =>
-          //       `• ${item.quantity}x ${item.item_name} - $${item.total_price.toFixed(2)}
-          //         ${item.item_description ? `  (${item.item_description})` : ''}`
-          //   )
-          //   .join('\n');
-
-          const deliveryAddress = order_type === "delivery"
-            ? `${orderData.street_address}, ${orderData.city}, ${orderData.county} ${orderData.postal_code}`
-            : '';
-
-          const emailBody = `
-<!DOCTYPE html>
+          const emailBody = `<!DOCTYPE html>
 <html>
 <head>
     <style>
@@ -282,20 +247,64 @@ router.post("/update-status", async (req, res) => {
         </div>
     </div>
 </body>
-</html>
-          `;
+</html>`;
 
-          // Send detailed email
           await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: customer_email,
-            subject: subject,
+            subject,
             html: emailBody,
           });
 
-          console.log(`✅ Detailed order email sent to: ${customer_email} for Order #${order_id}`);
-        } else {
-          console.log(`⚠️ No email found for Order #${order_id}`);
+          console.log(`✅ 'Green' status email sent to: ${customer_email}`);
+        }
+
+        // ===================== STATUS BLUE EMAIL =====================
+        if (status === "blue") {
+          const subject = `✅ Your Order #${order_id} Has Been Delivered!`;
+
+          const emailBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+    .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
+    .btn { display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>✅ Order Delivered</h1>
+      <p>Order #${orderData.order_id}</p>
+    </div>
+    <div class="content">
+      <p>Hi ${orderData.customer_name || "Valued Customer"},</p>
+      <p>Your order has been successfully delivered! 🎉</p>
+      <p>We hope you enjoyed your meal. 🍽️</p>
+      <p>We’d love to hear your feedback — please take a moment to leave us a review:</p>
+      <p><a href="https://search.google.com/local/reviews?placeid=YOUR_PLACE_ID" class="btn">⭐ Leave a Review</a></p>
+    </div>
+    <div class="footer">
+      <p>Thank you for ordering with us!</p>
+    </div>
+  </div>
+</body>
+</html>
+          `;
+
+          await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: customer_email,
+            subject,
+            html: emailBody,
+          });
+
+          console.log(`✅ 'Blue' status email sent to: ${customer_email}`);
         }
       }
     }
@@ -306,6 +315,7 @@ router.post("/update-status", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 router.post("/add-item", async (req, res) => {
   try {
