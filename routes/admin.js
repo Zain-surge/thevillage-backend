@@ -466,6 +466,7 @@ router.get("/sales-report/today", async (req, res) => {
 router.get("/sales-report/daily2/:date", async (req, res) => {
 
   const clientId = req.headers["x-client-id"];
+  
   if (!clientId) {
     return res.status(400).json({ error: "Missing client ID in headers" });
   }
@@ -489,7 +490,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
     if (isNaN(reportDate.getTime())) {
       return res.status(400).json({ error: "Invalid date provided" });
     }
-
+    console.log(date);
     const dateStr = date; // Already in YYYY-MM-DD format
 
     // Calculate same day last week for growth comparison
