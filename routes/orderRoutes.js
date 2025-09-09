@@ -134,8 +134,9 @@ router.post("/update-status", async (req, res) => {
 
     if (orderRows.length > 0) {
       const customer_email = orderRows[0].customer_email;
+      console.log("CUSTOMER EMAIL:",customer_email)
 
-      if (customer_email) {
+      if (customer_email && customer_email.trim() !== "") {
         // Build order data (common)
         const orderData = {
           order_id: orderRows[0].order_id,
