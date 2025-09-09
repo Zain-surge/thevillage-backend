@@ -136,7 +136,7 @@ router.post("/update-status", async (req, res) => {
       const customer_email = orderRows[0].customer_email;
       console.log("CUSTOMER EMAIL:",customer_email)
 
-      if (customer_email && customer_email.trim() !== "") {
+      if (customer_email && customer_email.trim() !== "" && customer_email.trim() !== "N/A") {
         // Build order data (common)
         const orderData = {
           order_id: orderRows[0].order_id,
