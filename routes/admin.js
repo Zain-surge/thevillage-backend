@@ -507,6 +507,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
        AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2)
     AND ($3::text IS NULL OR payment_type = $3)
     AND ($4::text IS NULL OR order_type = $4)
+    AND status!='cancelled'
     AND brand_name = $5`,
       [date, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -519,6 +520,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
        AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2)
     AND ($3::text IS NULL OR payment_type = $3)
     AND ($4::text IS NULL OR order_type = $4)
+    AND status!='cancelled'
     AND brand_name = $5`,
       [lastWeekStr, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -531,6 +533,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
        AND ($2::text IS NULL OR COALESCE(order_source, 'Unknown') = $2)
     AND ($3::text IS NULL OR payment_type = $3)
     AND ($4::text IS NULL OR order_type = $4)
+    AND status!='cancelled'
     AND brand_name = $5`,
       [date, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -544,6 +547,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
     AND ($3::text IS NULL OR payment_type = $3)
     AND ($4::text IS NULL OR order_type = $4)
     AND brand_name = $5
+    AND status!='cancelled'
        GROUP BY payment_type
        `,
       [date, sourceParam, paymentParam, orderTypeParam, clientId]
@@ -558,6 +562,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
     AND ($3::text IS NULL OR payment_type = $3)
     AND ($4::text IS NULL OR order_type = $4)
     AND brand_name = $5
+    AND status!='cancelled'
        GROUP BY order_type`,
       [date, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -571,6 +576,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
     AND ($3::text IS NULL OR payment_type = $3)
     AND ($4::text IS NULL OR order_type = $4)
     AND brand_name = $5
+    AND status!='cancelled'
        GROUP BY COALESCE(order_source, 'Unknown')`,
       [date, sourceParam, paymentParam, orderTypeParam, clientId]
     );
@@ -590,6 +596,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
     AND ($3::text IS NULL OR o.payment_type = $3)
     AND ($4::text IS NULL OR o.order_type = $4)
     AND o.brand_name = $5
+    AND o.status!='cancelled'
        GROUP BY oi.item_id, i.item_name
        ORDER BY quantity_sold DESC
        LIMIT 1`,
@@ -610,6 +617,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
     AND ($3::text IS NULL OR o.payment_type = $3)
     AND ($4::text IS NULL OR o.order_type = $4)
     AND o.brand_name = $5
+    AND o.status!='cancelled'
        GROUP BY i.type
        ORDER BY quantity_sold DESC
        LIMIT 1`,
@@ -633,6 +641,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
            AND ($2::text IS NULL OR COALESCE(o.order_source, 'Unknown') = $2)
            AND ($3::text IS NULL OR o.payment_type = $3)
            AND o.brand_name = $4
+           AND o.status!='cancelled'
            AND COALESCE(u.postal_code, g.postal_code) IS NOT NULL
          GROUP BY COALESCE(u.postal_code, g.postal_code)
          ORDER BY delivery_count DESC
@@ -663,6 +672,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
        AND ($3::text IS NULL OR o.payment_type = $3)
        AND ($4::text IS NULL OR o.order_type = $4)
        AND o.brand_name = $5
+       AND o.status!='cancelled'
        GROUP BY oi.item_id, i.item_name, i.type, i.subtype
        ORDER BY total_quantity_sold DESC`,
       [date, sourceParam, paymentParam, orderTypeParam, clientId]
@@ -692,6 +702,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
          AND ($3::text IS NULL OR o.payment_type = $3)
          AND ($4::text IS NULL OR o.order_type = $4)
          AND o.brand_name = $5
+         AND o.status!='cancelled'
        GROUP BY COALESCE(u.postal_code, g.postal_code)
        ORDER BY delivery_count DESC`,
       [date, sourceParam, paymentParam, orderTypeParam, clientId]
