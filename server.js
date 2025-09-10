@@ -34,7 +34,8 @@ const io = new Server(server, {
       "https://dallas-gio.web.app",
       "https://supersub-45e25.web.app",
       "https://testproject-4fee2.web.app",
-      "https://village-pizzeria.co.uk"
+      "https://village-pizzeria.co.uk",
+      "https://thevillagepizzeria.uk"
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
@@ -61,7 +62,8 @@ app.use(
       "https://dallas-gio.web.app",
       "https://supersub-45e25.web.app",
       "https://testproject-4fee2.web.app",
-      "https://village-pizzeria.co.uk"
+      "https://village-pizzeria.co.uk",
+      "https://thevillagepizzeria.uk"
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true, // Allows cookies to be sent across origins
