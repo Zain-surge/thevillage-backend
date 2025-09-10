@@ -288,7 +288,7 @@ router.post("/update-status", async (req, res) => {
       <p>Your order has been successfully delivered! 🎉</p>
       <p>We hope you enjoyed your meal. 🍽️</p>
       <p>We’d love to hear your feedback — please take a moment to leave us a review:</p>
-      <p><a href="https://search.google.com/local/reviews?placeid=YOUR_PLACE_ID" class="btn">⭐ Leave a Review</a></p>
+      <p><a href="https://www.google.com/search?sca_esv=dad87895c19efbc5&rlz=1C1MMCH_en-GBPK1172PK1172&sxsrf=AE3TifPn4kPHtiUfkCvt5bZ-jt-I8u_ftw:1757529359839&q=the+village+pizzeria+accrington&si=AMgyJEtREmoPL4P1I5IDCfuA8gybfVI2d5Uj7QMwYCZHKDZ-E9m9k2v6PnVBWURkZ5LBjpVBwRtRHq7S9fZbh8nvdIoZ1xPz05oJNlLWFQDOQa5GQmfs2nLJ8ONxQT99ybcyOjpTA22uWmVoyUglJz0IuuPADrsrsA%3D%3D&sa=X&ved=2ahUKEwioyLOJ686PAxWSUqQEHZHpCnsQrrQLegQIGhAA&biw=1920&bih=1065&dpr=1#lrd=0x487b99a6d0d54fdd:0xcd8bfd7f971c93c3,3,,,," class="btn">⭐ Leave a Review</a></p>
     </div>
     <div class="footer">
       <p>Thank you for ordering with us!</p>
