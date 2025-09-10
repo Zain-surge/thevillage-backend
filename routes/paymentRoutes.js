@@ -16,6 +16,10 @@ router.post("/create-payment-intent", async (req, res) => {
     const stripeAmount = Math.round(amount * 100);
     console.log("Stripe amount:", stripeAmount);
 
+    const cartJson = JSON.stringify(cartItems || []);
+    const cartMetadata =
+    cartJson.length > 500 ? cartJson.slice(0, 497) + "..." : cartJson;
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: stripeAmount,
       currency: "gbp",
@@ -24,7 +28,7 @@ router.post("/create-payment-intent", async (req, res) => {
         customer_email: customerInfo.email,
         customer_phone: customerInfo.phone,
         customer_address: JSON.stringify(customerInfo.address),
-        cart_items: JSON.stringify(cartItems),
+        cart_items: cartMetadata,
       },
     });
 
