@@ -69,6 +69,32 @@ router.get("/addresses", async (req, res) => {
   }
 });
 
+router.get("/postcodes", async (req, res) => {
+  const brandName = req.headers["x-client-id"]; // Or use query params if preferred
+  if (!brandName) {
+    return res.status(400).json({ error: "Missing brand name in headers" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT ba.postcode 
+       FROM brand_addresses ba
+       JOIN brands b ON ba.brand_id = b.brand_id
+       WHERE b.brand_name = $1`,
+      [brandName]
+    );
+
+    // Return just an array of postcodes
+    const postcodes = result.rows.map((row) => row.postcode);
+
+    res.json(postcodes);
+  } catch (error) {
+    console.error("❌ Error fetching postcodes:", error);
+    res.status(500).json({ error: "Failed to fetch postcodes" });
+  }
+});
+
+
 
 // Insert paidouts
 router.post("/paidouts", async (req, res) => {
