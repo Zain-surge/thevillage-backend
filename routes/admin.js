@@ -85,7 +85,7 @@ router.get("/postcodes", async (req, res) => {
     );
 
     // Return just an array of postcodes
-    const postcodes = result.rows.map((row) => row.postcode);
+    const postcodes = result;
 
     res.json(postcodes);
   } catch (error) {
