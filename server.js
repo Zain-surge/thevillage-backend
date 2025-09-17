@@ -20,6 +20,49 @@ import users from "./routes/userRoutes.js";
 import orders from "./routes/orderRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import driverRoutes from "./routes/driverRoutes.js";
+import fs from "fs/promises";
+import path from "path";
+
+// async function insertPostcodes() {
+//   try {
+//     // 1. Read file
+//     const filePath = path.join(process.cwd(),  "postcodes_with_streets.json");
+//     const raw = await fs.readFile(filePath, "utf8");
+//     const data = JSON.parse(raw);
+
+//     // 2. Ensure brand exists or get its id
+//     const brandResult = await client.query(
+//       `INSERT INTO brands (brand_name)
+//        VALUES ($1)
+//        ON CONFLICT (brand_name) DO UPDATE SET brand_name = EXCLUDED.brand_name
+//        RETURNING brand_id`,
+//       ["TVP"]
+//     );
+//     const brandId = brandResult.rows[0].brand_id;
+
+//     // 3. Insert each postcode (skip duplicates)
+//     for (const entry of data) {
+//       await client.query(
+//         `INSERT INTO brand_addresses (brand_id, postcode, lat, lon, distance_km, streets)
+//          VALUES ($1, $2, $3, $4, $5, $6)
+//          ON CONFLICT (brand_id, postcode) DO NOTHING`,
+//         [
+//           brandId,
+//           entry.postcode,
+//           entry.lat,
+//           entry.lon,
+//           entry.distance_km,
+//           entry.streets || [],
+//         ]
+//       );
+//     }
+
+//     console.log(`✅ Inserted ${data} postcode records for brand TVP`);
+//   } catch (err) {
+//     console.error("❌ Error inserting postcode data:", err);
+//   }
+// }
+
 
 dotenv.config();
 const app = express();
@@ -107,8 +150,9 @@ const client = new Client({
 
 client
   .connect()
-  .then(() => {
+  .then( () => {
     console.log("✅ Connected to PostgreSQL database successfully");
+    
   })
   .catch((err) => {
     console.error("❌ Error connecting to PostgreSQL:", err);

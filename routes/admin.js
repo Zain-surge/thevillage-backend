@@ -30,6 +30,46 @@ router.get("/offers", async (req, res) => {
   }
 });
 
+router.get("/addresses", async (req, res) => {
+  const clientId = req.headers["x-client-id"]; // brand name
+  const { postcode } = req.query;             // postcode query parameter
+
+  if (!clientId || !postcode) {
+    return res.status(400).json({
+      error: "Missing brand name in headers or postcode in query",
+    });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT ba.postcode, ba.streets
+       FROM brand_addresses AS ba
+       JOIN brands AS b
+         ON ba.brand_id = b.brand_id
+       WHERE b.brand_name = $1
+         AND ba.postcode = $2`,
+      [clientId, postcode]
+    );
+
+    if (result.rows.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No addresses found for this brand and postcode" });
+    }
+
+    const addresses = result.rows.map((row) => ({
+      postcode: row.postcode,
+      streets: row.streets,
+    }));
+
+    res.json(addresses);
+  } catch (error) {
+    console.error("Error fetching addresses:", error);
+    res.status(500).json({ error: "Failed to fetch addresses" });
+  }
+});
+
+
 // Insert paidouts
 router.post("/paidouts", async (req, res) => {
   const clientId = req.headers["x-client-id"];
