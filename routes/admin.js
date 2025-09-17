@@ -77,7 +77,7 @@ router.get("/postcodes", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT ba.postcode 
+      `SELECT ba.postcode , ba.streets
        FROM brand_addresses ba
        JOIN brands b ON ba.brand_id = b.brand_id
        WHERE b.brand_name = $1`,
