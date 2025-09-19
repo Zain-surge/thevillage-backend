@@ -151,7 +151,7 @@ router.post("/add-items", async (req, res) => {
   }
 
   try {
-    const { item_name, type, description, price, toppings , website} = req.body;
+    const { item_name, type, description, price, toppings , website, subType} = req.body;
 
     if (!item_name || !type || !price) {
       return res.status(400).json({ error: "item_name, type, and price are required" });
@@ -159,18 +159,19 @@ router.post("/add-items", async (req, res) => {
 
     // Insert into DB
     const result = await pool.query(
-      `INSERT INTO items (item_name, type, description, availability, price_options, toppings, brand_name,website)
+      `INSERT INTO items (item_name, type, description, availability, price_options, toppings, brand_name,website, supType)
        VALUES ($1, $2, $3, $4, $5, $6, $7,$8)
-       RETURNING item_id, item_name, type, description, availability, price_options, toppings, brand_name, website`,
+       RETURNING item_id, item_name, type, description, availability, price_options, toppings, brand_name, website, subType`,
       [
         item_name,
         type,
         description || "",
         true, // default availability
-        JSON.stringify({ default: price }), // store price inside JSONB
+        JSON.stringify(price), // store price inside JSONB
         JSON.stringify(toppings || []), // toppings as JSONB
         clientId,
         website,
+        subType
       ]
     );
 
