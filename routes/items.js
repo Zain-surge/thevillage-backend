@@ -159,7 +159,7 @@ router.post("/add-items", async (req, res) => {
 
     // Insert into DB
     const result = await pool.query(
-      `INSERT INTO items (item_name, type, description, availability, price_options, toppings, brand_name,website, suptype)
+      `INSERT INTO items (item_name, type, description, availability, price_options, toppings, brand_name,website, subtype)
        VALUES ($1, $2, $3, $4, $5, $6, $7,$8,$9)
        RETURNING item_id, item_name, type, description, availability, price_options, toppings, brand_name, website, subtype`,
       [
