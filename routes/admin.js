@@ -541,7 +541,7 @@ router.get("/sales-report/today", async (req, res) => {
 router.get("/sales-report/daily2/:date", async (req, res) => {
 
   const clientId = req.headers["x-client-id"];
-  
+
   if (!clientId) {
     return res.status(400).json({ error: "Missing client ID in headers" });
   }
@@ -783,6 +783,63 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
       [date, sourceParam, paymentParam, orderTypeParam, clientId]
     );
 
+    // --- Sales by order type: WEBSITE ---
+    const byOrderTypeWebsiteQuery = await pool.query(
+      `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total
+   FROM orders
+   WHERE DATE(created_at) = $1
+     AND COALESCE(order_source, 'Unknown') = 'website'
+     AND ($2::text IS NULL OR payment_type = $2)
+     AND ($3::text IS NULL OR order_type = $3)
+     AND brand_name = $4
+     AND status!='cancelled'
+   GROUP BY order_type`,
+      [date, paymentParam, orderTypeParam, clientId]
+    );
+
+    // --- Sales by order type: POS ---
+    const byOrderTypePOSQuery = await pool.query(
+      `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total
+   FROM orders
+   WHERE DATE(created_at) = $1
+     AND COALESCE(order_source, 'Unknown') = 'POS'
+     AND ($2::text IS NULL OR payment_type = $2)
+     AND ($3::text IS NULL OR order_type = $3)
+     AND brand_name = $4
+     AND status!='cancelled'
+   GROUP BY order_type`,
+      [date, paymentParam, orderTypeParam, clientId]
+    );
+
+    // --- Sales by payment type: WEBSITE ---
+    const byPaymentWebsiteQuery = await pool.query(
+      `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total
+   FROM orders
+   WHERE DATE(created_at) = $1
+     AND COALESCE(order_source, 'Unknown') = 'website'
+     AND ($2::text IS NULL OR payment_type = $2)
+     AND ($3::text IS NULL OR order_type = $3)
+     AND brand_name = $4
+     AND status!='cancelled'
+   GROUP BY payment_type`,
+      [date, paymentParam, orderTypeParam, clientId]
+    );
+
+    // --- Sales by payment type: POS ---
+    const byPaymentPOSQuery = await pool.query(
+      `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total
+   FROM orders
+   WHERE DATE(created_at) = $1
+     AND COALESCE(order_source, 'Unknown') = 'POS'
+     AND ($2::text IS NULL OR payment_type = $2)
+     AND ($3::text IS NULL OR order_type = $3)
+     AND brand_name = $4
+     AND status!='cancelled'
+   GROUP BY payment_type`,
+      [date, paymentParam, orderTypeParam, clientId]
+    );
+
+
     const todaySales = parseFloat(totalSalesQuery.rows[0].total_sales);
     const todayDiscount = parseFloat(totalSalesQuery.rows[0].total_discount);
     const lastWeekSales = parseFloat(totalSalesLastWeek.rows[0].total_sales);
@@ -809,6 +866,10 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
       deliveries_by_postal_code: deliveriesByPostalCodeQuery.rows, // ✅ New field added
       all_items_sold: allItemsSoldQuery.rows,
       paidouts: paidoutsQuery.rows,
+      sales_by_order_type_website: byOrderTypeWebsiteQuery.rows,
+      sales_by_order_type_pos: byOrderTypePOSQuery.rows,
+      sales_by_payment_type_website: byPaymentWebsiteQuery.rows,
+      sales_by_payment_type_pos: byPaymentPOSQuery.rows,
     });
   } catch (error) {
     console.error("❌ Error generating daily sales report:", error);
@@ -818,7 +879,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
 
 // Weekly report with week number parameter
 router.get("/sales-report/weekly2/:date", async (req, res) => {
-const clientId = req.headers["x-client-id"];
+  const clientId = req.headers["x-client-id"];
   if (!clientId) {
     return res.status(400).json({ error: "Missing client ID in headers" });
   }
@@ -1327,7 +1388,7 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
    ORDER BY total_quantity_sold DESC`,
       [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId]
     );
-     const queryText = `
+    const queryText = `
   SELECT 
      COALESCE(u.postal_code, g.postal_code) AS postal_code,
      COUNT(*) AS delivery_count,
