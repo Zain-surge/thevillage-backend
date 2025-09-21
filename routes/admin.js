@@ -505,6 +505,61 @@ router.get("/sales-report/today", async (req, res) => {
        ORDER BY delivery_count DESC`,
       [todayStr, sourceParam, paymentParam, orderTypeParam, clientId]
     );
+    // --- Sales by order type: WEBSITE ---
+    const byOrderTypeWebsiteQuery = await pool.query(
+      `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total
+   FROM orders
+   WHERE DATE(created_at) = $1
+     AND COALESCE(order_source, 'Unknown') = 'Website'
+     AND ($2::text IS NULL OR payment_type = $2)
+     AND ($3::text IS NULL OR order_type = $3)
+     AND brand_name = $4
+     AND status!='cancelled'
+   GROUP BY order_type`,
+      [todayStr, paymentParam, orderTypeParam, clientId]
+    );
+
+    // --- Sales by order type: POS ---
+    const byOrderTypePOSQuery = await pool.query(
+      `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total
+   FROM orders
+   WHERE DATE(created_at) = $1
+     AND COALESCE(order_source, 'Unknown') = 'EPOS'
+     AND ($2::text IS NULL OR payment_type = $2)
+     AND ($3::text IS NULL OR order_type = $3)
+     AND brand_name = $4
+     AND status!='cancelled'
+   GROUP BY order_type`,
+      [todayStr, paymentParam, orderTypeParam, clientId]
+    );
+
+    // --- Sales by payment type: WEBSITE ---
+    const byPaymentWebsiteQuery = await pool.query(
+      `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total
+   FROM orders
+   WHERE DATE(created_at) = $1
+     AND COALESCE(order_source, 'Unknown') = 'Website'
+     AND ($2::text IS NULL OR payment_type = $2)
+     AND ($3::text IS NULL OR order_type = $3)
+     AND brand_name = $4
+     AND status!='cancelled'
+   GROUP BY payment_type`,
+      [todayStr, paymentParam, orderTypeParam, clientId]
+    );
+
+    // --- Sales by payment type: POS ---
+    const byPaymentPOSQuery = await pool.query(
+      `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total
+   FROM orders
+   WHERE DATE(created_at) = $1
+     AND COALESCE(order_source, 'Unknown') = 'EPOS'
+     AND ($2::text IS NULL OR payment_type = $2)
+     AND ($3::text IS NULL OR order_type = $3)
+     AND brand_name = $4
+     AND status!='cancelled'
+   GROUP BY payment_type`,
+      [todayStr, paymentParam, orderTypeParam, clientId]
+    );
 
     const todaySales = parseFloat(totalSalesQuery.rows[0].total_sales);
     const todayDiscount = parseFloat(totalSalesQuery.rows[0].total_discount);
@@ -530,6 +585,10 @@ router.get("/sales-report/today", async (req, res) => {
       deliveries_by_postal_code: deliveriesByPostalCodeQuery.rows, // ✅ New field added
       all_items_sold: allItemsSoldQuery.rows,
       paidouts: paidoutsQuery.rows, // ✅ added here
+      sales_by_order_type_website: byOrderTypeWebsiteQuery.rows,
+      sales_by_order_type_pos: byOrderTypePOSQuery.rows,
+      sales_by_payment_type_website: byPaymentWebsiteQuery.rows,
+      sales_by_payment_type_pos: byPaymentPOSQuery.rows,
     });
   } catch (error) {
     console.error("❌ Error generating sales report:", error);
