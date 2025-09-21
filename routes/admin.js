@@ -1529,6 +1529,62 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
 
     const params = [fromDate, toDate, sourceParam, paymentParam, orderTypeParam, clientId];
 
+     // --- Sales by order type: WEBSITE ---
+    const byOrderTypeWebsiteQuery = await pool.query(
+      `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total
+   FROM orders
+   WHERE DATE(created_at) BETWEEN $1 AND $2
+     AND COALESCE(order_source, 'Unknown') = 'Website'
+     AND ($3::text IS NULL OR payment_type = $3)
+     AND ($4::text IS NULL OR order_type = $4)
+     AND brand_name = $5
+     AND status!='cancelled'
+   GROUP BY order_type`,
+      [fromDate, toDate, paymentParam, orderTypeParam, clientId]
+    );
+
+    // --- Sales by order type: POS ---
+    const byOrderTypePOSQuery = await pool.query(
+      `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total
+   FROM orders
+   WHERE DATE(created_at) BETWEEN $1 AND $2
+     AND COALESCE(order_source, 'Unknown') = 'EPOS'
+     AND ($3::text IS NULL OR payment_type = $3)
+     AND ($4::text IS NULL OR order_type = $4)
+     AND brand_name = $5
+     AND status!='cancelled'
+   GROUP BY order_type`,
+      [fromDate, toDate, paymentParam, orderTypeParam, clientId]
+    );
+
+    // --- Sales by payment type: WEBSITE ---
+    const byPaymentWebsiteQuery = await pool.query(
+      `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total
+   FROM orders
+   WHERE DATE(created_at) BETWEEN $1 AND $2
+     AND COALESCE(order_source, 'Unknown') = 'Website'
+     AND ($3::text IS NULL OR payment_type = $3)
+     AND ($4::text IS NULL OR order_type = $4)
+     AND brand_name = $5
+     AND status!='cancelled'
+   GROUP BY payment_type`,
+      [fromDate, toDate, paymentParam, orderTypeParam, clientId]
+    );
+
+    // --- Sales by payment type: POS ---
+    const byPaymentPOSQuery = await pool.query(
+      `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total
+   FROM orders
+   WHERE DATE(created_at) BETWEEN $1 AND $2
+     AND COALESCE(order_source, 'Unknown') = 'EPOS'
+     AND ($3::text IS NULL OR payment_type = $3)
+     AND ($4::text IS NULL OR order_type = $4)
+     AND brand_name = $5
+     AND status!='cancelled'
+   GROUP BY payment_type`,
+      [fromDate, toDate, paymentParam, orderTypeParam, clientId]
+    );
+
     // Execute query
     const deliveriesByPostalCodeQuery = await pool.query(queryText, params);
 
@@ -1566,6 +1622,10 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
       most_delivered_postal_code: mostDeliveredPostalCodeQuery.rows[0] || null,
       deliveries_by_postal_code: deliveriesByPostalCodeQuery.rows, // ✅ New field added
       all_items_sold: allItemsSoldQuery.rows,
+      sales_by_order_type_website: byOrderTypeWebsiteQuery.rows,
+      sales_by_order_type_pos: byOrderTypePOSQuery.rows,
+      sales_by_payment_type_website: byPaymentWebsiteQuery.rows,
+      sales_by_payment_type_pos: byPaymentPOSQuery.rows,
     });
   } catch (error) {
     console.error("❌ Error generating monthly sales report:", error);
