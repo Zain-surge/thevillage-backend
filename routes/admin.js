@@ -788,7 +788,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
       `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total
    FROM orders
    WHERE DATE(created_at) = $1
-     AND COALESCE(order_source, 'Unknown') = 'website'
+     AND COALESCE(order_source, 'Unknown') = 'Website'
      AND ($2::text IS NULL OR payment_type = $2)
      AND ($3::text IS NULL OR order_type = $3)
      AND brand_name = $4
@@ -802,7 +802,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
       `SELECT order_type, COUNT(*) AS count, SUM(total_price) AS total
    FROM orders
    WHERE DATE(created_at) = $1
-     AND COALESCE(order_source, 'Unknown') = 'POS'
+     AND COALESCE(order_source, 'Unknown') = 'EPOS'
      AND ($2::text IS NULL OR payment_type = $2)
      AND ($3::text IS NULL OR order_type = $3)
      AND brand_name = $4
@@ -816,7 +816,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
       `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total
    FROM orders
    WHERE DATE(created_at) = $1
-     AND COALESCE(order_source, 'Unknown') = 'website'
+     AND COALESCE(order_source, 'Unknown') = 'Website'
      AND ($2::text IS NULL OR payment_type = $2)
      AND ($3::text IS NULL OR order_type = $3)
      AND brand_name = $4
@@ -830,7 +830,7 @@ router.get("/sales-report/daily2/:date", async (req, res) => {
       `SELECT payment_type, COUNT(*) AS count, SUM(total_price) AS total
    FROM orders
    WHERE DATE(created_at) = $1
-     AND COALESCE(order_source, 'Unknown') = 'POS'
+     AND COALESCE(order_source, 'Unknown') = 'EPOS'
      AND ($2::text IS NULL OR payment_type = $2)
      AND ($3::text IS NULL OR order_type = $3)
      AND brand_name = $4
