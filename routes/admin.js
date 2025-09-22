@@ -187,7 +187,6 @@ router.get("/orders/cancelled", async (req, res) => {
       LEFT JOIN guests g ON o.guest_id = g.guest_id
       WHERE o.brand_name = $1
         AND o.status = 'cancelled'
-        AND o.payment_type = 'Card'
       ORDER BY o.created_at DESC
       `,
       [clientId]
