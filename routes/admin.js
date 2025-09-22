@@ -186,7 +186,7 @@ router.get("/orders/cancelled", async (req, res) => {
       LEFT JOIN users u ON o.user_id = u.user_id
       LEFT JOIN guests g ON o.guest_id = g.guest_id
       WHERE o.brand_name = $1
-        AND o.status = 'cancelled'
+        AND (o.status = 'cancelled' OR o.status='refunded') 
       ORDER BY o.created_at DESC
       `,
       [clientId]
