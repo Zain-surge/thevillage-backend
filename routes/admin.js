@@ -1230,6 +1230,19 @@ router.get("/sales-report/weekly2/:date", async (req, res) => {
    GROUP BY payment_type`,
       [fromDate, toDate, paymentParam, orderTypeParam, clientId]
     );
+    const totalPaidouts = await pool.query(
+      `Select sum(amount) from paidout 
+      where DATE(created_at) BETWEEN $1 AND $2
+      AND brand_name = $3`,
+      [fromDate, toDate, clientId]
+    );
+
+    const totalDiscount = await pool.query(
+      `Select sum(discount) from orders 
+      where DATE(created_at) BETWEEN $1 AND $2
+      AND brand_name = $3`,
+      [fromDate, toDate, clientId]
+    );
 
     // Execute query
     const deliveriesByPostalCodeQuery = await pool.query(queryText, params);
@@ -1264,6 +1277,9 @@ router.get("/sales-report/weekly2/:date", async (req, res) => {
       sales_by_order_type_pos: byOrderTypePOSQuery.rows,
       sales_by_payment_type_website: byPaymentWebsiteQuery.rows,
       sales_by_payment_type_pos: byPaymentPOSQuery.rows,
+      
+      whole_month_paidouts: totalPaidouts.rows,
+      whole_month_discount:totalDiscount.rows,
     });
   } catch (error) {
     console.error("❌ Error generating weekly sales report:", error);
