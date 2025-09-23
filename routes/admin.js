@@ -1638,8 +1638,8 @@ router.get("/sales-report/monthly2/:year/:month", async (req, res) => {
       sales_by_order_type_pos: byOrderTypePOSQuery.rows,
       sales_by_payment_type_website: byPaymentWebsiteQuery.rows,
       sales_by_payment_type_pos: byPaymentPOSQuery.rows,
-      total_paidOuts: totalPaidouts.rows,
-      total_discount:totalDiscount.rows,
+      whole_month_paidouts: totalPaidouts.rows,
+      whole_month_discount:totalDiscount.rows,
     });
   } catch (error) {
     console.error("❌ Error generating monthly sales report:", error);
