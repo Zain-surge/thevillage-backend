@@ -132,183 +132,183 @@ router.post("/update-status", async (req, res) => {
 
     const orderRows = orderDetailsResult.rows;
 
-    if (orderRows.length > 0) {
-      const customer_email = orderRows[0].customer_email;
-      console.log("CUSTOMER EMAIL:",customer_email)
+//     if (orderRows.length > 0) {
+//       const customer_email = orderRows[0].customer_email;
+//       console.log("CUSTOMER EMAIL:",customer_email)
 
-      if (customer_email && customer_email.trim() !== "" && customer_email.trim() !== "N/A") {
-        // Build order data (common)
-        const orderData = {
-          order_id: orderRows[0].order_id,
-          order_type: orderRows[0].order_type,
-          total_price: orderRows[0].order_total_price,
-          created_at: orderRows[0].created_at,
-          customer_name: orderRows[0].customer_name,
-          customer_email: orderRows[0].customer_email,
-          items: orderRows.map((row) => ({
-            item_name: row.item_name,
-            item_type: row.type,
-            quantity: row.quantity,
-            item_description: row.description,
-            item_total_price: row.total_price,
-          })),
-        };
+//       if (customer_email && customer_email.trim() !== "" && customer_email.trim() !== "N/A") {
+//         // Build order data (common)
+//         const orderData = {
+//           order_id: orderRows[0].order_id,
+//           order_type: orderRows[0].order_type,
+//           total_price: orderRows[0].order_total_price,
+//           created_at: orderRows[0].created_at,
+//           customer_name: orderRows[0].customer_name,
+//           customer_email: orderRows[0].customer_email,
+//           items: orderRows.map((row) => ({
+//             item_name: row.item_name,
+//             item_type: row.type,
+//             quantity: row.quantity,
+//             item_description: row.description,
+//             item_total_price: row.total_price,
+//           })),
+//         };
 
-        // ===================== STATUS GREEN EMAIL =====================
-        if (status === "green" && updatedDriverId) {
-          const subject =
-            order_type === "delivery"
-              ? `🚗 Your Order #${order_id} is On Its Way!`
-              : `🎉 Your Order #${order_id} is Ready for Pickup!`;
+//         // ===================== STATUS GREEN EMAIL =====================
+//         if (status === "green" && updatedDriverId) {
+//           const subject =
+//             order_type === "delivery"
+//               ? `🚗 Your Order #${order_id} is On Its Way!`
+//               : `🎉 Your Order #${order_id} is Ready for Pickup!`;
 
-          const emailBody = `<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #808080; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-        .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
-        .order-details { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
-        .items-list { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
-        .driver-info { background-color: #e8f5e8; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #808080; }
-        .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
-        .highlight { color: #808080; font-weight: bold; }
-        .price { font-weight: bold; color: #808080; }
-        h3 { margin-top: 0; color: #808080; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>${order_type === "delivery" ? "🚗 Your Order is On Its Way!" : "🎉 Your Order is Ready!"}</h1>
-            <p>Order #${orderData.order_id}</p>
-        </div>
+//           const emailBody = `<!DOCTYPE html>
+// <html>
+// <head>
+//     <style>
+//         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+//         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+//         .header { background-color: #808080; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+//         .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+//         .order-details { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
+//         .items-list { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
+//         .driver-info { background-color: #e8f5e8; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #808080; }
+//         .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
+//         .highlight { color: #808080; font-weight: bold; }
+//         .price { font-weight: bold; color: #808080; }
+//         h3 { margin-top: 0; color: #808080; }
+//     </style>
+// </head>
+// <body>
+//     <div class="container">
+//         <div class="header">
+//             <h1>${order_type === "delivery" ? "🚗 Your Order is On Its Way!" : "🎉 Your Order is Ready!"}</h1>
+//             <p>Order #${orderData.order_id}</p>
+//         </div>
         
-        <div class="content">
-            <p>Hi ${orderData.customer_name || 'Valued Customer'}!</p>
-            <p>${order_type === "delivery"
-              ? `Great news! Your delicious order is now on its way to you. Our driver will be there soon! 🍕🚗`
-              : `Your order is ready and waiting for you! Come pick it up whenever you're ready. 🍕🎉`
-            }</p>
+//         <div class="content">
+//             <p>Hi ${orderData.customer_name || 'Valued Customer'}!</p>
+//             <p>${order_type === "delivery"
+//               ? `Great news! Your delicious order is now on its way to you. Our driver will be there soon! 🍕🚗`
+//               : `Your order is ready and waiting for you! Come pick it up whenever you're ready. 🍕🎉`
+//             }</p>
 
-            <div class="order-details">
-                <h3>📋 Order Details</h3>
-                <p><strong>Order ID:</strong> #${orderData.order_id}</p>
-                <p><strong>Order Type:</strong> <span class="highlight">${order_type.charAt(0).toUpperCase() + order_type.slice(1)}</span></p>
-                <p><strong>Payment Method:</strong> ${orderData.payment_type}</p>
-                <p><strong>Order Time:</strong> ${new Date(orderData.created_at).toLocaleString()}</p>
-                ${orderData.transaction_id ? `<p><strong>Transaction ID:</strong> ${orderData.transaction_id}</p>` : ''}
-                ${orderData.change_due > 0 ? `<p><strong>Change Due:</strong> <span class="price">£${orderData.change_due.toFixed(2)}</span></p>` : ''}
-            </div>
+//             <div class="order-details">
+//                 <h3>📋 Order Details</h3>
+//                 <p><strong>Order ID:</strong> #${orderData.order_id}</p>
+//                 <p><strong>Order Type:</strong> <span class="highlight">${order_type.charAt(0).toUpperCase() + order_type.slice(1)}</span></p>
+//                 <p><strong>Payment Method:</strong> ${orderData.payment_type}</p>
+//                 <p><strong>Order Time:</strong> ${new Date(orderData.created_at).toLocaleString()}</p>
+//                 ${orderData.transaction_id ? `<p><strong>Transaction ID:</strong> ${orderData.transaction_id}</p>` : ''}
+//                 ${orderData.change_due > 0 ? `<p><strong>Change Due:</strong> <span class="price">£${orderData.change_due.toFixed(2)}</span></p>` : ''}
+//             </div>
 
-            ${order_type === "delivery" ? `
-            <div class="order-details">
-                <h3>📍 Delivery Address</h3>
-                <p>${deliveryAddress}</p>
-                <p><strong>Phone:</strong> ${orderData.phone_number}</p>
-            </div>
-            ` : ''}
+//             ${order_type === "delivery" ? `
+//             <div class="order-details">
+//                 <h3>📍 Delivery Address</h3>
+//                 <p>${deliveryAddress}</p>
+//                 <p><strong>Phone:</strong> ${orderData.phone_number}</p>
+//             </div>
+//             ` : ''}
 
-            <div class="items-list">
-                <h3>🍽️ Your Order</h3>
-                ${orderData.items.map(item => `
-                    <div style="border-bottom: 1px solid #eee; padding: 8px 0;">
-                        <strong>${item.quantity}x ${item.item_name}</strong> - <span class="price">£${item.item_total_price}</span>
-                        ${item.item_description ? `<br><small style="color: #666;">${item.item_description}</small>` : ''}
-                    </div>
-                `).join('')}
-                <div style="padding: 10px 0; border-top: 2px solid #4CAF50; margin-top: 10px;">
-                    <strong>Total: <span class="price">£${orderData.total_price}</span></strong>
-                </div>
-            </div>
+//             <div class="items-list">
+//                 <h3>🍽️ Your Order</h3>
+//                 ${orderData.items.map(item => `
+//                     <div style="border-bottom: 1px solid #eee; padding: 8px 0;">
+//                         <strong>${item.quantity}x ${item.item_name}</strong> - <span class="price">£${item.item_total_price}</span>
+//                         ${item.item_description ? `<br><small style="color: #666;">${item.item_description}</small>` : ''}
+//                     </div>
+//                 `).join('')}
+//                 <div style="padding: 10px 0; border-top: 2px solid #4CAF50; margin-top: 10px;">
+//                     <strong>Total: <span class="price">£${orderData.total_price}</span></strong>
+//                 </div>
+//             </div>
 
-            ${orderData.extra_notes ? `
-            <div class="order-details">
-                <h3>📝 Special Notes</h3>
-                <p>${orderData.extra_notes}</p>
-            </div>
-            ` : ''}
+//             ${orderData.extra_notes ? `
+//             <div class="order-details">
+//                 <h3>📝 Special Notes</h3>
+//                 <p>${orderData.extra_notes}</p>
+//             </div>
+//             ` : ''}
 
-            ${orderData.driver.name ? `
-            <div class="driver-info">
-                <h3>👨‍🚀 Your Driver</h3>
-                <p><strong>Name:</strong> ${orderData.driver.name}</p>
-                <p><strong>Phone:</strong> ${orderData.driver.phone}</p>
-                <p><em>Feel free to contact your driver if needed!</em></p>
-            </div>
-            ` : ''}
+//             ${orderData.driver.name ? `
+//             <div class="driver-info">
+//                 <h3>👨‍🚀 Your Driver</h3>
+//                 <p><strong>Name:</strong> ${orderData.driver.name}</p>
+//                 <p><strong>Phone:</strong> ${orderData.driver.phone}</p>
+//                 <p><em>Feel free to contact your driver if needed!</em></p>
+//             </div>
+//             ` : ''}
 
-            <p>Thank you for choosing us! We hope you enjoy your meal! 😊</p>
-        </div>
+//             <p>Thank you for choosing us! We hope you enjoy your meal! 😊</p>
+//         </div>
         
-        <div class="footer">
-            <p>Questions? Contact us at ${process.env.EMAIL_USER}</p>
-            <p>This is an automated message. Please do not reply to this email.</p>
-        </div>
-    </div>
-</body>
-</html>`;
+//         <div class="footer">
+//             <p>Questions? Contact us at ${process.env.EMAIL_USER}</p>
+//             <p>This is an automated message. Please do not reply to this email.</p>
+//         </div>
+//     </div>
+// </body>
+// </html>`;
 
-          await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: customer_email,
-            subject,
-            html: emailBody,
-          });
+//           await transporter.sendMail({
+//             from: process.env.EMAIL_USER,
+//             to: customer_email,
+//             subject,
+//             html: emailBody,
+//           });
 
-          console.log(`✅ 'Green' status email sent to: ${customer_email}`);
-        }
+//           console.log(`✅ 'Green' status email sent to: ${customer_email}`);
+//         }
 
-        // ===================== STATUS BLUE EMAIL =====================
-        if (status === "blue") {
-          const subject = `✅ Your Order #${order_id} Has Been Delivered!`;
+//         // ===================== STATUS BLUE EMAIL =====================
+//         if (status === "blue") {
+//           const subject = `✅ Your Order #${order_id} Has Been Delivered!`;
 
-          const emailBody = `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-    .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
-    .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
-    .btn { display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; margin-top: 15px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>✅ Order Delivered</h1>
-      <p>Order #${orderData.order_id}</p>
-    </div>
-    <div class="content">
-      <p>Hi ${orderData.customer_name || "Valued Customer"},</p>
-      <p>Your order has been successfully delivered! 🎉</p>
-      <p>We hope you enjoyed your meal. 🍽️</p>
-      <p>We’d love to hear your feedback — please take a moment to leave us a review:</p>
-      <p><a href="https://www.google.com/search?sca_esv=dad87895c19efbc5&rlz=1C1MMCH_en-GBPK1172PK1172&sxsrf=AE3TifPn4kPHtiUfkCvt5bZ-jt-I8u_ftw:1757529359839&q=the+village+pizzeria+accrington&si=AMgyJEtREmoPL4P1I5IDCfuA8gybfVI2d5Uj7QMwYCZHKDZ-E9m9k2v6PnVBWURkZ5LBjpVBwRtRHq7S9fZbh8nvdIoZ1xPz05oJNlLWFQDOQa5GQmfs2nLJ8ONxQT99ybcyOjpTA22uWmVoyUglJz0IuuPADrsrsA%3D%3D&sa=X&ved=2ahUKEwioyLOJ686PAxWSUqQEHZHpCnsQrrQLegQIGhAA&biw=1920&bih=1065&dpr=1#lrd=0x487b99a6d0d54fdd:0xcd8bfd7f971c93c3,3,,,," class="btn">⭐ Leave a Review</a></p>
-    </div>
-    <div class="footer">
-      <p>Thank you for ordering with us!</p>
-    </div>
-  </div>
-</body>
-</html>
-          `;
+//           const emailBody = `
+// <!DOCTYPE html>
+// <html>
+// <head>
+//   <style>
+//     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+//     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+//     .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+//     .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+//     .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
+//     .btn { display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; margin-top: 15px; }
+//   </style>
+// </head>
+// <body>
+//   <div class="container">
+//     <div class="header">
+//       <h1>✅ Order Delivered</h1>
+//       <p>Order #${orderData.order_id}</p>
+//     </div>
+//     <div class="content">
+//       <p>Hi ${orderData.customer_name || "Valued Customer"},</p>
+//       <p>Your order has been successfully delivered! 🎉</p>
+//       <p>We hope you enjoyed your meal. 🍽️</p>
+//       <p>We’d love to hear your feedback — please take a moment to leave us a review:</p>
+//       <p><a href="https://www.google.com/search?sca_esv=dad87895c19efbc5&rlz=1C1MMCH_en-GBPK1172PK1172&sxsrf=AE3TifPn4kPHtiUfkCvt5bZ-jt-I8u_ftw:1757529359839&q=the+village+pizzeria+accrington&si=AMgyJEtREmoPL4P1I5IDCfuA8gybfVI2d5Uj7QMwYCZHKDZ-E9m9k2v6PnVBWURkZ5LBjpVBwRtRHq7S9fZbh8nvdIoZ1xPz05oJNlLWFQDOQa5GQmfs2nLJ8ONxQT99ybcyOjpTA22uWmVoyUglJz0IuuPADrsrsA%3D%3D&sa=X&ved=2ahUKEwioyLOJ686PAxWSUqQEHZHpCnsQrrQLegQIGhAA&biw=1920&bih=1065&dpr=1#lrd=0x487b99a6d0d54fdd:0xcd8bfd7f971c93c3,3,,,," class="btn">⭐ Leave a Review</a></p>
+//     </div>
+//     <div class="footer">
+//       <p>Thank you for ordering with us!</p>
+//     </div>
+//   </div>
+// </body>
+// </html>
+//           `;
 
-          await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: customer_email,
-            subject,
-            html: emailBody,
-          });
+//           await transporter.sendMail({
+//             from: process.env.EMAIL_USER,
+//             to: customer_email,
+//             subject,
+//             html: emailBody,
+//           });
 
-          console.log(`✅ 'Blue' status email sent to: ${customer_email}`);
-        }
-      }
-    }
+//           console.log(`✅ 'Blue' status email sent to: ${customer_email}`);
+//         }
+//       }
+//     }
 
     res.status(200).json({ message: "Order status updated successfully" });
   } catch (error) {
@@ -559,150 +559,150 @@ router.post("/full-create", async (req, res) => {
     );
     console.log("CUSTOMER EMAIL", customer_email)
     await client.query("COMMIT");
-    if (customer_email && customer_email!='N/A' && transporter) {
-      try {
-        // Prepare order data for email template
-        const orderData = {
-          order_id: order_id,
-          customer_name: customer_name,
-          payment_type: payment_type,
-          created_at: new Date(),
-          transaction_id: transaction_id,
-          change_due: change_due || 0,
-          phone_number: guest?.phone_number || '',
-          items: items.map(item => ({
-            quantity: item.quantity,
-            item_name: item.description, // Assuming description contains item name
-            item_total_price: parseFloat(item.total_price).toFixed(2),
-            item_description: item.description
-          })),
-          total_price: parseFloat(total_price).toFixed(2),
-          extra_notes: extra_notes,
-          driver: {
-            name: '', // Add driver info if available
-            phone: ''
-          }
-        };
+//     if (customer_email && customer_email!='N/A' && transporter) {
+//       try {
+//         // Prepare order data for email template
+//         const orderData = {
+//           order_id: order_id,
+//           customer_name: customer_name,
+//           payment_type: payment_type,
+//           created_at: new Date(),
+//           transaction_id: transaction_id,
+//           change_due: change_due || 0,
+//           phone_number: guest?.phone_number || '',
+//           items: items.map(item => ({
+//             quantity: item.quantity,
+//             item_name: item.description, // Assuming description contains item name
+//             item_total_price: parseFloat(item.total_price).toFixed(2),
+//             item_description: item.description
+//           })),
+//           total_price: parseFloat(total_price).toFixed(2),
+//           extra_notes: extra_notes,
+//           driver: {
+//             name: '', // Add driver info if available
+//             phone: ''
+//           }
+//         };
 
-        const subject = `Order Confirmation #${order_id} - Successfully Placed!`;
+//         const subject = `Order Confirmation #${order_id} - Successfully Placed!`;
 
-        const emailBody = `<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-    .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
-    .order-details { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
-    .items-list { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
-    .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
-    .highlight { color: #4CAF50; font-weight: bold; }
-    .price { font-weight: bold; color: #4CAF50; }
-    h3 { margin-top: 0; color: #4CAF50; }
-    .success-badge { background-color: #4CAF50; color: white; padding: 5px 15px; border-radius: 20px; display: inline-block; margin: 10px 0; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>✅ Order Successfully Placed!</h1>
-      <p>Order #${orderData.order_id}</p>
-      <div class="success-badge">Confirmed</div>
-    </div>
-    <div class="content">
-      <p>Hi ${orderData.customer_name || 'Valued Customer'}!</p>
-      <p>Thank you for your order! We've successfully received your order and it's now being prepared. ${order_type === "delivery" ?
-            "We'll notify you once it's out for delivery! 🍕🚗" :
-            "We'll let you know when it's ready for pickup! 🍕📞"
-          }</p>
+//         const emailBody = `<!DOCTYPE html>
+// <html>
+// <head>
+//   <style>
+//     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+//     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+//     .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+//     .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+//     .order-details { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
+//     .items-list { background-color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border: 1px solid #e0e0e0; }
+//     .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
+//     .highlight { color: #4CAF50; font-weight: bold; }
+//     .price { font-weight: bold; color: #4CAF50; }
+//     h3 { margin-top: 0; color: #4CAF50; }
+//     .success-badge { background-color: #4CAF50; color: white; padding: 5px 15px; border-radius: 20px; display: inline-block; margin: 10px 0; }
+//   </style>
+// </head>
+// <body>
+//   <div class="container">
+//     <div class="header">
+//       <h1>✅ Order Successfully Placed!</h1>
+//       <p>Order #${orderData.order_id}</p>
+//       <div class="success-badge">Confirmed</div>
+//     </div>
+//     <div class="content">
+//       <p>Hi ${orderData.customer_name || 'Valued Customer'}!</p>
+//       <p>Thank you for your order! We've successfully received your order and it's now being prepared. ${order_type === "delivery" ?
+//             "We'll notify you once it's out for delivery! 🍕🚗" :
+//             "We'll let you know when it's ready for pickup! 🍕📞"
+//           }</p>
       
-      <div class="order-details">
-        <h3>📋 Order Summary</h3>
-        <p><strong>Order ID:</strong> #${orderData.order_id}</p>
-        <p><strong>Order Type:</strong> <span class="highlight">${order_type.charAt(0).toUpperCase() + order_type.slice(1)}</span></p>
-        <p><strong>Payment Method:</strong> ${orderData.payment_type}</p>
-        <p><strong>Order Time:</strong> ${new Date(orderData.created_at).toLocaleString()}</p>
-        ${orderData.transaction_id ? `<p><strong>Transaction ID:</strong> ${orderData.transaction_id}</p>` : ''}
-        ${orderData.change_due > 0 ? `<p><strong>Change Due:</strong> <span class="price">£${orderData.change_due.toFixed(2)}</span></p>` : ''}
-        <p><strong>Status:</strong> <span class="highlight">Order Confirmed</span></p>
-      </div>
+//       <div class="order-details">
+//         <h3>📋 Order Summary</h3>
+//         <p><strong>Order ID:</strong> #${orderData.order_id}</p>
+//         <p><strong>Order Type:</strong> <span class="highlight">${order_type.charAt(0).toUpperCase() + order_type.slice(1)}</span></p>
+//         <p><strong>Payment Method:</strong> ${orderData.payment_type}</p>
+//         <p><strong>Order Time:</strong> ${new Date(orderData.created_at).toLocaleString()}</p>
+//         ${orderData.transaction_id ? `<p><strong>Transaction ID:</strong> ${orderData.transaction_id}</p>` : ''}
+//         ${orderData.change_due > 0 ? `<p><strong>Change Due:</strong> <span class="price">£${orderData.change_due.toFixed(2)}</span></p>` : ''}
+//         <p><strong>Status:</strong> <span class="highlight">Order Confirmed</span></p>
+//       </div>
 
-      ${order_type === "delivery" ? `
-      <div class="order-details">
-        <h3>📍 Delivery Details</h3>
-        <p><strong>Address:</strong> ${deliveryAddress}</p>
-        <p><strong>Phone:</strong> ${orderData.phone_number}</p>
-        <p><em>Estimated delivery time: 30-45 minutes</em></p>
-      </div>` : `
-      <div class="order-details">
-        <h3>🏪 Pickup Details</h3>
-        <p><strong>Phone:</strong> ${orderData.phone_number}</p>
-        <p><em>Estimated pickup time: 15-25 minutes</em></p>
-        <p><em>We'll call you when your order is ready!</em></p>
-      </div>`}
+//       ${order_type === "delivery" ? `
+//       <div class="order-details">
+//         <h3>📍 Delivery Details</h3>
+//         <p><strong>Address:</strong> ${deliveryAddress}</p>
+//         <p><strong>Phone:</strong> ${orderData.phone_number}</p>
+//         <p><em>Estimated delivery time: 30-45 minutes</em></p>
+//       </div>` : `
+//       <div class="order-details">
+//         <h3>🏪 Pickup Details</h3>
+//         <p><strong>Phone:</strong> ${orderData.phone_number}</p>
+//         <p><em>Estimated pickup time: 15-25 minutes</em></p>
+//         <p><em>We'll call you when your order is ready!</em></p>
+//       </div>`}
 
-      <div class="items-list">
-        <h3>🍽️ Order Items</h3>
-        ${orderData.items.map(item => `
-        <div style="border-bottom: 1px solid #eee; padding: 8px 0;">
-          <strong>${item.quantity}x ${item.item_name}</strong> - <span class="price">£${item.item_total_price}</span>
-          ${item.item_description ? `<br><small style="color: #666;">${item.item_description}</small>` : ''}
-        </div>`).join('')}
-        <div style="padding: 10px 0; border-top: 2px solid #4CAF50; margin-top: 10px;">
-          <strong>Total Paid: <span class="price">£${orderData.total_price}</span></strong>
-        </div>
-      </div>
+//       <div class="items-list">
+//         <h3>🍽️ Order Items</h3>
+//         ${orderData.items.map(item => `
+//         <div style="border-bottom: 1px solid #eee; padding: 8px 0;">
+//           <strong>${item.quantity}x ${item.item_name}</strong> - <span class="price">£${item.item_total_price}</span>
+//           ${item.item_description ? `<br><small style="color: #666;">${item.item_description}</small>` : ''}
+//         </div>`).join('')}
+//         <div style="padding: 10px 0; border-top: 2px solid #4CAF50; margin-top: 10px;">
+//           <strong>Total Paid: <span class="price">£${orderData.total_price}</span></strong>
+//         </div>
+//       </div>
 
-      ${orderData.extra_notes ? `
-      <div class="order-details">
-        <h3>📝 Special Instructions</h3>
-        <p>${orderData.extra_notes}</p>
-      </div>` : ''}
+//       ${orderData.extra_notes ? `
+//       <div class="order-details">
+//         <h3>📝 Special Instructions</h3>
+//         <p>${orderData.extra_notes}</p>
+//       </div>` : ''}
 
-      <div style="background-color: #e8f5e8; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #4CAF50;">
-        <p><strong>What's Next?</strong></p>
-        <ul style="margin: 10px 0;">
-          <li>Your order is being prepared by our kitchen team</li>
-          ${order_type === "delivery" ?
-            "<li>You'll receive another email when your order is out for delivery</li>" :
-            "<li>We'll call you when your order is ready for pickup</li>"
-          }
-          <li>Keep this email for your records</li>
-        </ul>
-      </div>
+//       <div style="background-color: #e8f5e8; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid #4CAF50;">
+//         <p><strong>What's Next?</strong></p>
+//         <ul style="margin: 10px 0;">
+//           <li>Your order is being prepared by our kitchen team</li>
+//           ${order_type === "delivery" ?
+//             "<li>You'll receive another email when your order is out for delivery</li>" :
+//             "<li>We'll call you when your order is ready for pickup</li>"
+//           }
+//           <li>Keep this email for your records</li>
+//         </ul>
+//       </div>
 
-      <p>Thank you for choosing us! If you have any questions about your order, please don't hesitate to contact us. 😊</p>
-    </div>
-    <div class="footer">
-      <p><strong>Need Help?</strong></p>
-      <p>Contact us at ${process.env.EMAIL_USER} or call us directly</p>
-      <p>Order Reference: #${orderData.order_id}</p>
-      <hr style="border: 1px solid #555; margin: 10px 0;">
-      <p><small>This is an automated confirmation email. Please keep it for your records.</small></p>
-    </div>
-  </div>
-</body>
-</html>`;
+//       <p>Thank you for choosing us! If you have any questions about your order, please don't hesitate to contact us. 😊</p>
+//     </div>
+//     <div class="footer">
+//       <p><strong>Need Help?</strong></p>
+//       <p>Contact us at ${process.env.EMAIL_USER} or call us directly</p>
+//       <p>Order Reference: #${orderData.order_id}</p>
+//       <hr style="border: 1px solid #555; margin: 10px 0;">
+//       <p><small>This is an automated confirmation email. Please keep it for your records.</small></p>
+//     </div>
+//   </div>
+// </body>
+// </html>`;
 
-        // Send email
-        if(customer_email)
-        {
-            await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: customer_email,
-          subject: subject,
-          html: emailBody,
-        });
-        }
+//         // Send email
+//         if(customer_email)
+//         {
+//             await transporter.sendMail({
+//           from: process.env.EMAIL_USER,
+//           to: customer_email,
+//           subject: subject,
+//           html: emailBody,
+//         });
+//         }
         
 
-        console.log(`✅ Email sent successfully to ${customer_email}`);
-      } catch (emailError) {
-        console.error("❌ Failed to send email:", emailError);
-        // Don't fail the entire request if email fails
-      }
-    }
+//         console.log(`✅ Email sent successfully to ${customer_email}`);
+//       } catch (emailError) {
+//         console.error("❌ Failed to send email:", emailError);
+//         // Don't fail the entire request if email fails
+//       }
+//     }
 
 
     res.status(201).json({ order_id });
@@ -1084,56 +1084,56 @@ router.post("/cancel", async (req, res) => {
     console.log(`✅ Order ${order_id} has been cancelled successfully`);
 
     // Send cancellation email (if customer has email)
-    if (order.customer_email) {
-      const subject = `❌ Your Order #${order_id} Has Been Cancelled`;
-      const refundMessage =
-        order.payment_type === "Card"
-          ? `
-        <p>Since you paid by card, a refund of <strong>£${order.total_price}</strong> will be processed automatically.</p>
-        <p>Please allow 7–14 business days for the refund to appear in your account.</p>
-      `
-          : "";
-      const emailBody = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <style>
-                body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background-color: #c0392b; color: #fff; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-                .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
-                .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header">
-                  <h1>Order Cancelled</h1>
-                </div>
-                <div class="content">
-                  <p>Hi ${order.customer_name || "Customer"},</p>
-                  <p>We wanted to let you know that your order <strong>#${order_id}</strong> has been successfully cancelled.</p>
-                  ${refundMessage}
-                  <p>If you didn’t request this cancellation or have any questions, please contact our support team.</p>
-                </div>
-                <div class="footer">
-                  <p>Thank you for choosing us.</p>
-                  <p>— The ${clientId} Team</p>
-                </div>
-              </div>
-            </body>
-            </html>
-      `;
+    // if (order.customer_email) {
+    //   const subject = `❌ Your Order #${order_id} Has Been Cancelled`;
+    //   const refundMessage =
+    //     order.payment_type === "Card"
+    //       ? `
+    //     <p>Since you paid by card, a refund of <strong>£${order.total_price}</strong> will be processed automatically.</p>
+    //     <p>Please allow 7–14 business days for the refund to appear in your account.</p>
+    //   `
+    //       : "";
+    //   const emailBody = `
+    //         <!DOCTYPE html>
+    //         <html>
+    //         <head>
+    //           <style>
+    //             body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+    //             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    //             .header { background-color: #c0392b; color: #fff; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+    //             .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+    //             .footer { background-color: #333; color: white; padding: 15px; text-align: center; border-radius: 0 0 10px 10px; }
+    //           </style>
+    //         </head>
+    //         <body>
+    //           <div class="container">
+    //             <div class="header">
+    //               <h1>Order Cancelled</h1>
+    //             </div>
+    //             <div class="content">
+    //               <p>Hi ${order.customer_name || "Customer"},</p>
+    //               <p>We wanted to let you know that your order <strong>#${order_id}</strong> has been successfully cancelled.</p>
+    //               ${refundMessage}
+    //               <p>If you didn’t request this cancellation or have any questions, please contact our support team.</p>
+    //             </div>
+    //             <div class="footer">
+    //               <p>Thank you for choosing us.</p>
+    //               <p>— The ${clientId} Team</p>
+    //             </div>
+    //           </div>
+    //         </body>
+    //         </html>
+    //   `;
 
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: order.customer_email,
-        subject: subject,
-        html: emailBody,
-      });
+    //   await transporter.sendMail({
+    //     from: process.env.EMAIL_USER,
+    //     to: order.customer_email,
+    //     subject: subject,
+    //     html: emailBody,
+    //   });
 
-      console.log(`📧 Cancellation email sent to ${order.customer_email}`);
-    }
+    //   console.log(`📧 Cancellation email sent to ${order.customer_email}`);
+    // }
 
     res.status(200).json({
       message: "Order cancelled successfully",
