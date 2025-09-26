@@ -23,45 +23,45 @@ import driverRoutes from "./routes/driverRoutes.js";
 import fs from "fs/promises";
 import path from "path";
 
-// async function insertPostcodes() {
-//   try {
-//     // 1. Read file
-//     const filePath = path.join(process.cwd(),  "postcodes_with_streets.json");
-//     const raw = await fs.readFile(filePath, "utf8");
-//     const data = JSON.parse(raw);
+async function insertPostcodes() {
+  try {
+    // 1. Read file
+    const filePath = path.join(process.cwd(),  "postcodes_with_streets_Dallas.json");
+    const raw = await fs.readFile(filePath, "utf8");
+    const data = JSON.parse(raw);
 
-//     // 2. Ensure brand exists or get its id
-//     const brandResult = await client.query(
-//       `INSERT INTO brands (brand_name)
-//        VALUES ($1)
-//        ON CONFLICT (brand_name) DO UPDATE SET brand_name = EXCLUDED.brand_name
-//        RETURNING brand_id`,
-//       ["TVP"]
-//     );
-//     const brandId = brandResult.rows[0].brand_id;
+    // 2. Ensure brand exists or get its id
+    const brandResult = await client.query(
+      `INSERT INTO brands (brand_name)
+       VALUES ($1)
+       ON CONFLICT (brand_name) DO UPDATE SET brand_name = EXCLUDED.brand_name
+       RETURNING brand_id`,
+      ["Dallas"]
+    );
+    const brandId = brandResult.rows[0].brand_id;
 
-//     // 3. Insert each postcode (skip duplicates)
-//     for (const entry of data) {
-//       await client.query(
-//         `INSERT INTO brand_addresses (brand_id, postcode, lat, lon, distance_km, streets)
-//          VALUES ($1, $2, $3, $4, $5, $6)
-//          ON CONFLICT (brand_id, postcode) DO NOTHING`,
-//         [
-//           brandId,
-//           entry.postcode,
-//           entry.lat,
-//           entry.lon,
-//           entry.distance_km,
-//           entry.streets || [],
-//         ]
-//       );
-//     }
+    // 3. Insert each postcode (skip duplicates)
+    for (const entry of data) {
+      await client.query(
+        `INSERT INTO brand_addresses (brand_id, postcode, lat, lon, distance_km, streets)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (brand_id, postcode) DO NOTHING`,
+        [
+          brandId,
+          entry.postcode,
+          entry.lat,
+          entry.lon,
+          entry.distance_km,
+          entry.streets || [],
+        ]
+      );
+    }
 
-//     console.log(`✅ Inserted ${data} postcode records for brand TVP`);
-//   } catch (err) {
-//     console.error("❌ Error inserting postcode data:", err);
-//   }
-// }
+    console.log(`✅ Inserted ${data} postcode records for brand Dallas`);
+  } catch (err) {
+    console.error("❌ Error inserting postcode data:", err);
+  }
+}
 
 
 dotenv.config();
@@ -328,6 +328,6 @@ app.get("/health", (req, res) => res.send("Server is healthy! ✅"));
 
 const port = process.env.PORT || 5000;
 // app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
-
+insertPostcodes()
 // const port = process.env.PORT || 5000;
 server.listen(port, () => console.log(`🚀 Server running on port ${port}`));

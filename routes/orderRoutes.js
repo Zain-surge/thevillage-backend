@@ -939,7 +939,6 @@ router.get("/track/:order_id", async (req, res) => {
       JOIN Order_Items oi ON o.order_id = oi.order_id
       JOIN Items i ON oi.item_id = i.item_id
       WHERE COALESCE(u.phone_number, g.phone_number) = $1
-      AND o.status != 'blue'
       AND DATE(o.created_at) = CURRENT_DATE
       AND o.brand_name=$2
       `,
